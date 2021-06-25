@@ -1,9 +1,19 @@
-// A copy of DataStructs from Denis
+// Data Containers for GEM-CSC
+#ifndef TREEDATAFORMAT_CC
+#define TREEDATAFORMAT_CC
+#include "TROOT.h"
+#include "TString.h"
+#include "TVector2.h"
+#include "TTree.h"
+#include "TChain.h"
 
-#include<TROOT.h>
-#include<TString.h>
-#include<vector>
+#include <vector>
+#include <utility>
+#include <cmath>
 
+#include "Tools.cc"
+
+using namespace std;
 //bundles all tp-related information
 struct tp{
   float    pt;
@@ -27,15 +37,13 @@ struct SimHit{
   float    r;
   float    z;
   unsigned MatchTp;
-  SimHitAve ToAve() {
-    return SimHitAve{phi, eta, r, z};
-    // SimhitAve out;
-    // out.phi = phi;
-    // out.eta = eta;
-    // out.r   = r;
-    // out.z   = z;
-    // return out;
-  }
+};
+
+struct GEMPadDigi{
+  float phi;
+  float eta;
+  float r;
+  float z;
 };
 
 //container for CSC stub information
@@ -68,13 +76,6 @@ struct GEMDigi{
   int   layer; //0 is innermost, 3 is outermost, given the subdetector in question
 };
 
-struct GEMPadDigi{
-  float phi;
-  float eta;
-  float r;
-  float z;
-};
-
 //container for SimHit averages
 struct SimHitAve{
   float phi;
@@ -83,26 +84,208 @@ struct SimHitAve{
   float z;
 };
 
-//container for generator-truth related information and links to reconstructed quantities for each station
-struct TPcontent{
-  unsigned         tpIndex;
+class TPContent{
+public:
+  // idx = -1 by default
+  TPContent(unsigned idx) {
+    SortedIndex = RawIndex = idx;
+    CSCSimHits.clear();
+    GEMSimHits.clear();
+    CSCStubs.clear();
+    GEMDigis.clear();
+  };
+  void CalcSimHitAve() {
+    float ncsc = NSimHitsCSC = CSCSimHits.size();
+    float ngem = NSimHitsGEM = GEMSimHits.size();
+    CSCSimHitAve = GEMSimHitAve = SimHitAve{0.,0.,0.,0.};
+    for (unsigned i = 0; i < NSimHitsCSC; ++i) {
+      CSCSimHitAve.phi += CSCSimHits[i].phi / ncsc;
+      CSCSimHitAve.eta += CSCSimHits[i].eta / ncsc;
+      CSCSimHitAve.r   += CSCSimHits[i].r / ncsc;
+      CSCSimHitAve.z   += CSCSimHits[i].z / ncsc;
+    };
+    CSCSimHitAve.phi = TVector2::Phi_mpi_pi(CSCSimHitAve.phi);
+    for (unsigned i = 0; i < NSimHitsGEM; ++i) {
+      GEMSimHitAve.phi += GEMSimHits[i].phi / ngem;
+      GEMSimHitAve.eta += GEMSimHits[i].eta / ngem;
+      GEMSimHitAve.r   += GEMSimHits[i].r / ngem;
+      GEMSimHitAve.z   += GEMSimHits[i].z / ngem;
+    };
+    GEMSimHitAve.phi = TVector2::Phi_mpi_pi(GEMSimHitAve.phi);
+  }
+
+  tp               TP;
+  unsigned         RawIndex;
+  unsigned         SortedIndex;
   unsigned         NSimHitsCSC;
   unsigned         NSimHitsGEM;
   SimHitAve        CSCSimHitAve;
   SimHitAve        GEMSimHitAve;
-  vector<unsigned> CSCSimHitIndices;
-  vector<unsigned> GEMSimHitIndices;
-  vector<unsigned> MatchedCSCStubIndices;
-  vector<unsigned> MatchedGEMDigiIndices;
+  vector<SimHit>   CSCSimHits;
+  vector<SimHit>   GEMSimHits;
+  vector<CSCStub>  CSCStubs;
+  vector<GEMDigi>  GEMDigis;
 };
 
-//container for TP-related content in station, station labeling, and all reco information within the station
-struct StationContent{
-  TString           StationLabel;
-  vector<TPcontent> TPinfoInStation;
-  vector<unsigned>  CSCStubIndices;
-  vector<unsigned>  GEMDigiIndices;
-  vector<unsigned>  GEMPadDigiIndices;
+class StationData{
+public:
+  StationData(TString lable) {
+    StationLabel = lable;
+    TPInfos.clear();
+    CSCStubs.clear();
+    GEMDigis.clear();
+    GEMPadDigis.clear();
+  };
+  void AddCSCSimHit(SimHit& d) {
+    for (unsigned i = 0; i < TPInfos.size(); ++i) {
+      if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].CSCSimHits.push_back(d);
+      return;
+    }
+    TPContent tmp((unsigned)d.MatchTp);
+    tmp.CSCSimHits.push_back(d);
+    TPInfos.push_back(tmp);
+  }
+  void AddGEMSimHit(SimHit& d) {
+    for (unsigned i = 0; i < TPInfos.size(); ++i) {
+      if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].GEMSimHits.push_back(d);
+      return;
+    }
+    TPContent tmp((unsigned)d.MatchTp);
+    tmp.GEMSimHits.push_back(d);
+    TPInfos.push_back(tmp);
+  }
+  void AddCSCStub(CSCStub& d) {
+    if (d.MatchTp == -1) {
+      CSCStubs.push_back(d);
+      return;
+    }
+    for (unsigned i = 0; i < TPInfos.size(); ++i) {
+      if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].CSCStubs.push_back(d);
+      return;
+    }
+    TPContent tmp((unsigned)d.MatchTp);
+    tmp.CSCStubs.push_back(d);
+    TPInfos.push_back(tmp);
+  }
+  void AddGEMDigi(GEMDigi& d) {
+    if (d.MatchTp == -1) {
+      GEMDigis.push_back(d);
+      return;
+    }
+    for (unsigned i = 0; i < TPInfos.size(); ++i) {
+      if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].GEMDigis.push_back(d);
+      return;
+    }
+    TPContent tmp((unsigned)d.MatchTp);
+    tmp.GEMDigis.push_back(d);
+    TPInfos.push_back(tmp);
+  }
+  void AddGEMPadDigi(GEMPadDigi& d) {
+    GEMPadDigis.push_back(d);
+  }
+  void FillTP(vector<tp> tps) {
+    for (unsigned i = 0; i < TPInfos.size(); ++i) {
+      bool found = false;
+      for (unsigned j = 0; j < tps.size(); ++i) {
+        if (TPInfos[i].RawIndex == tps[j].Index){
+          TPInfos[i].TP = tps[j];
+          TPInfos[i].TP.pt = tps[j].pt;
+          TPInfos[i].TP.eta = tps[j].eta;
+          TPInfos[i].TP.phi = tps[j].phi;
+          TPInfos[i].TP.dxy = tps[j].dxy;
+          TPInfos[i].TP.d0 = tps[j].d0;
+          TPInfos[i].TP.z0 = tps[j].z0;
+          TPInfos[i].TP.d0_prod = tps[j].d0_prod;
+          TPInfos[i].TP.z0_prod = tps[j].z0_prod;
+          TPInfos[i].TP.pdgid = tps[j].pdgid;
+          TPInfos[i].TP.eventid = tps[j].eventid;
+          TPInfos[i].TP.charge = tps[j].charge;
+          TPInfos[i].TP.Index = tps[j].Index;
+          found = true;
+          break;
+        }
+      }
+      if (!found) cout << "Cannot find a tp with index = " << TPInfos[i].RawIndex <<endl;
+    }
+  }
+  void CalcSimHitAve() {
+    for (unsigned i = 0; i < TPInfos.size(); ++i) {
+      TPInfos[i].CalcSimHitAve();
+    }
+  }
+  TString            StationLabel;
+  vector<TPContent>  TPInfos;
+  vector<CSCStub>    CSCStubs;
+  vector<GEMDigi>    GEMDigis;
+  vector<GEMPadDigi> GEMPadDigis;
+};
+
+class EventData{
+public:
+  EventData() {
+    Init();
+  }
+  void Init() {
+    Stations = vector<vector<StationData> >{
+      {
+        StationData("1-1"),
+        StationData("1-2"),
+        StationData("1-3")
+      },
+      {
+        StationData("2-1"),
+        StationData("2-2")
+      },
+      {
+        StationData("3-1"),
+        StationData("3-2")
+      },
+      {
+        StationData("4-1"),
+        StationData("4-2")
+      }
+    };
+    MuonTPs.clear();
+  }
+  StationData& Station(pair<unsigned,unsigned> DaR){
+    return Stations[DaR.first][DaR.second];
+  }
+  void AddTP(tp& muontp) {
+    MuonTPs.push_back(muontp);
+  }
+  void AddCSCSimHit(SimHit& d) {
+    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+    Stations[DaR.first][DaR.second].AddCSCSimHit(d);
+  }
+  void AddGEMSimHit(SimHit& d) {
+    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+    Stations[DaR.first][DaR.second].AddGEMSimHit(d);
+  }
+  void AddCSCStub(CSCStub& d) {
+    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+    Stations[DaR.first][DaR.second].AddCSCStub(d);
+  }
+  void AddGEMDigi(GEMDigi& d) {
+    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+    Stations[DaR.first][DaR.second].AddGEMDigi(d);
+  }
+  void AddGEMPadDigi(GEMPadDigi& d) {
+    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+    Stations[DaR.first][DaR.second].AddGEMPadDigi(d);
+  }
+  void FillTP() {
+    for (unsigned i = 0; i < Stations.size(); ++i) for(unsigned j = 0; j < Stations[i].size(); ++j) {
+      Stations[i][j].FillTP(MuonTPs);
+    }
+  }
+  void CalcSimHitAve() {
+    for (unsigned i = 0; i < Stations.size(); ++i) for(unsigned j = 0; j < Stations[i].size(); ++j) {
+      Stations[i][j].CalcSimHitAve();
+    }
+  }
+
+  vector<vector<StationData> > Stations;
+  vector<tp> MuonTPs;
 };
 
 //container for tp-based information
@@ -115,7 +298,7 @@ class Branch_Reader{
 public:
   Branch_Reader() {
 
-  }
+  };
 
   void Init(TChain* evttree, TString name_, int data_type_, bool match_ = false) {
     name = name_;
@@ -242,20 +425,20 @@ public:
       nstub        = new std::vector<int>;
       eventid      = new std::vector<int>;
       charge       = new std::vector<int>;
-      eventTree->SetBranchAddress(name+"_pt",          &pt);
-      eventTree->SetBranchAddress(name+"_eta",         &eta);
-      eventTree->SetBranchAddress(name+"_phi",         &phi);
-      eventTree->SetBranchAddress(name+"_dxy",         &dxy);
-      eventTree->SetBranchAddress(name+"_d0",          &d0);
-      eventTree->SetBranchAddress(name+"_z0",          &z0);
-      eventTree->SetBranchAddress(name+"_d0_prod",     &d0_prod);
-      eventTree->SetBranchAddress(name+"_z0_prod",     &z0_prod);
-      eventTree->SetBranchAddress(name+"_pdgid",       &pdgid);
-      eventTree->SetBranchAddress(name+"_nmatch",      &nmatch);
-      eventTree->SetBranchAddress(name+"_nloosematch", &nloosematch);
-      eventTree->SetBranchAddress(name+"_nstub",       &nstub);
-      eventTree->SetBranchAddress(name+"_eventid",     &eventid);
-      eventTree->SetBranchAddress(name+"_charge",      &charge);
+      evttree->SetBranchAddress(name+"_pt",          &pt);
+      evttree->SetBranchAddress(name+"_eta",         &eta);
+      evttree->SetBranchAddress(name+"_phi",         &phi);
+      evttree->SetBranchAddress(name+"_dxy",         &dxy);
+      evttree->SetBranchAddress(name+"_d0",          &d0);
+      evttree->SetBranchAddress(name+"_z0",          &z0);
+      evttree->SetBranchAddress(name+"_d0_prod",     &d0_prod);
+      evttree->SetBranchAddress(name+"_z0_prod",     &z0_prod);
+      evttree->SetBranchAddress(name+"_pdgid",       &pdgid);
+      evttree->SetBranchAddress(name+"_nmatch",      &nmatch);
+      evttree->SetBranchAddress(name+"_nloosematch", &nloosematch);
+      evttree->SetBranchAddress(name+"_nstub",       &nstub);
+      evttree->SetBranchAddress(name+"_eventid",     &eventid);
+      evttree->SetBranchAddress(name+"_charge",      &charge);
     }
   }
 
@@ -417,14 +600,6 @@ private:
   TString name;
   int data_type;
   bool IsMatched;
-}
+};
 
-
-// Tools
-int MuonTPindex(unsigned Original_, vector<tp> MuonTPs_){
-  const unsigned TPsize=MuonTPs_.size();
-  for(unsigned tp=0; tp<TPsize; ++tp){
-    if(MuonTPs_[tp].Index==Original_) return tp;
-  }
-  return -1;
-}
+#endif
