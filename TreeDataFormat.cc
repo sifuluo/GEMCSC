@@ -113,6 +113,9 @@ public:
     };
     GEMSimHitAve.phi = TVector2::Phi_mpi_pi(GEMSimHitAve.phi);
   }
+  void SetTP(tp tp_) {
+    TP = tp_;
+  }
 
   tp               TP;
   unsigned         RawIndex;
@@ -186,21 +189,9 @@ public:
   void FillTP(vector<tp> tps) {
     for (unsigned i = 0; i < TPInfos.size(); ++i) {
       bool found = false;
-      for (unsigned j = 0; j < tps.size(); ++i) {
+      for (unsigned j = 0; j < tps.size(); ++j) {
         if (TPInfos[i].RawIndex == tps[j].Index){
-          TPInfos[i].TP = tps[j];
-          TPInfos[i].TP.pt = tps[j].pt;
-          TPInfos[i].TP.eta = tps[j].eta;
-          TPInfos[i].TP.phi = tps[j].phi;
-          TPInfos[i].TP.dxy = tps[j].dxy;
-          TPInfos[i].TP.d0 = tps[j].d0;
-          TPInfos[i].TP.z0 = tps[j].z0;
-          TPInfos[i].TP.d0_prod = tps[j].d0_prod;
-          TPInfos[i].TP.z0_prod = tps[j].z0_prod;
-          TPInfos[i].TP.pdgid = tps[j].pdgid;
-          TPInfos[i].TP.eventid = tps[j].eventid;
-          TPInfos[i].TP.charge = tps[j].charge;
-          TPInfos[i].TP.Index = tps[j].Index;
+          TPInfos[i].SetTP(tps[j]);
           found = true;
           break;
         }

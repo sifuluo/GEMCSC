@@ -38,7 +38,7 @@ void GEMEff() {
     // else cout << "z[0] = " << z->at(0) <<endl;
     tr.ReadTree();
     cout << "Finished ReadTree" <<endl;
-    // cout << tr.Evt.Stations[0][0].TPInfos.size() <<endl;
+    cout << tr.Evt.Stations[0][0].TPInfos.size() <<endl;
   }
 
 
