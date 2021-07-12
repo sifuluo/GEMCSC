@@ -83,11 +83,37 @@ int CSClayerIndex(float z_){
   else return -1;
 }
 
-double CalcdR(double eta1, double eta2, double phi1, double phi2) {
-  double etadiff = fabs(eta1 - eta2);
-  double phidiff = TVector2::Phi_mpi_pi(phi1 - phi2);
-  double dr = sqrt(etadiff * etadiff + phidiff * phidiff);
-  return dr;
+vector<float> CalcdR(float eta1, float eta2, float phi1, float phi2) {
+  float etadiff = fabs(eta1 - eta2);
+  float phidiff = TVector2::Phi_mpi_pi(phi1 - phi2);
+  float dr = sqrt(etadiff * etadiff + phidiff * phidiff);
+  vector<float> out{dr,etadiff,phidiff};
+  return out;
+}
+
+bool IsCloseCSC(float eta1, float eta2, float phi1, float phi2) {
+  if (fabs(eta1 - eta2) < 0.028 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.007) return true;
+  return false;
+}
+
+bool IsCloseGEM(float eta1, float eta2, float phi1, float phi2) {
+  if (fabs(eta1 - eta2) < 0.038 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.002) return true;
+  return false;
+}
+
+bool IsCloseCluster(float eta1, float eta2, float phi1, float phi2) {
+  if (fabs(eta1 - eta2) < 0.2 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.1) return true;
+  return false;
+}
+
+void PrintProgress (int entry, int entries, int dividen = 100) {
+  entries--;
+  if (entry % dividen ==0 || entry == entries ) {
+    cout << Form("\rProgress: %i / %i ", entry, entries) <<flush;
+  }
+  if (entry == entries){
+    cout <<endl << "Done."<<endl;
+  }
 }
 
 #endif

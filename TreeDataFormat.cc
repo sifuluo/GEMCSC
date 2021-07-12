@@ -30,7 +30,6 @@ struct tp{
   unsigned Index; //contains the oriignal unculled tp collection index to facilitate linking
 };
 
-//container for SimHit-related information
 struct SimHit{
   float    phi;
   float    eta;
@@ -46,7 +45,15 @@ struct GEMPadDigi{
   float z;
 };
 
-//container for CSC stub information
+struct GEMPadDigiCluster{
+  float phi;
+  float eta;
+  float r;
+  float z;
+  int MatchTp;
+  vector<int> pads;
+};
+
 struct CSCStub{
   float phi;
   float eta;
@@ -66,7 +73,6 @@ struct CSCStub{
   GEMPadDigi GEM2;
 };
 
-//container for GEM digi information
 struct GEMDigi{
   float phi;
   float eta;
@@ -76,7 +82,6 @@ struct GEMDigi{
   int   layer; //0 is innermost, 3 is outermost, given the subdetector in question
 };
 
-//container for SimHit averages
 struct SimHitAve{
   float phi;
   float eta;
@@ -128,6 +133,7 @@ public:
   vector<SimHit>   GEMSimHits;
   vector<CSCStub>  CSCStubs;
   vector<GEMDigi>  GEMDigis;
+  vector<GEMPadDigiCluster> Clusters;
 };
 
 class StationData{
@@ -138,6 +144,7 @@ public:
     CSCStubs.clear();
     GEMDigis.clear();
     GEMPadDigis.clear();
+    Clusters.clear();
   };
   void AddCSCSimHit(SimHit& d) {
     for (unsigned i = 0; i < TPInfos.size(); ++i) {
@@ -183,10 +190,23 @@ public:
     tmp.GEMDigis.push_back(d);
     TPInfos.push_back(tmp);
   }
-  void AddGEMPadDigi(GEMPadDigi& d) {
+  void AddGEMPadDigi(GEMPadDigi d) {
     GEMPadDigis.push_back(d);
   }
-  void FillTP(vector<tp> tps) {
+  void AddGEMPadDigiCluster(GEMPadDigiCluster& d) {
+    if (d.MatchTp == -1) {
+      Clusters.push_back(d);
+      return;
+    }
+    for (unsigned i = 0; i < TPInfos.size(); ++i) {
+      if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].Clusters.push_back(d);
+      return;
+    }
+    TPContent tmp((unsigned)d.MatchTp);
+    tmp.Clusters.push_back(d);
+    TPInfos.push_back(tmp);
+  }
+  void FillTP(vector<tp>& tps) {
     for (unsigned i = 0; i < TPInfos.size(); ++i) {
       bool found = false;
       for (unsigned j = 0; j < tps.size(); ++j) {
@@ -197,6 +217,13 @@ public:
         }
       }
       if (!found) cout << "Cannot find a tp with index = " << TPInfos[i].RawIndex <<endl;
+      // if (!found) {
+      //   cout << "List of TP Indices are  ";
+      //   for (unsigned j = 0; j < tps.size(); ++j) {
+      //     cout << ", " << tps[j].Index;
+      //   }
+      //   cout <<endl;
+      // }
     }
   }
   void CalcSimHitAve() {
@@ -209,6 +236,7 @@ public:
   vector<CSCStub>    CSCStubs;
   vector<GEMDigi>    GEMDigis;
   vector<GEMPadDigi> GEMPadDigis;
+  vector<GEMPadDigiCluster> Clusters;
 };
 
 class EventData{
@@ -260,9 +288,13 @@ public:
     pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
     Stations[DaR.first][DaR.second].AddGEMDigi(d);
   }
-  void AddGEMPadDigi(GEMPadDigi& d) {
+  void AddGEMPadDigi(GEMPadDigi d) {
     pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
     Stations[DaR.first][DaR.second].AddGEMPadDigi(d);
+  }
+  void AddGEMPadDigiCluster(GEMPadDigiCluster& d) {
+    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+    Stations[DaR.first][DaR.second].AddGEMPadDigiCluster(d);
   }
   void FillTP() {
     for (unsigned i = 0; i < Stations.size(); ++i) for(unsigned j = 0; j < Stations[i].size(); ++j) {
@@ -431,6 +463,23 @@ public:
       evttree->SetBranchAddress(name+"_eventid",     &eventid);
       evttree->SetBranchAddress(name+"_charge",      &charge);
     }
+
+    // GEMPadDigiCluster
+    else if (data_type == 7) {
+      InitGP(evttree);
+      detId = new std::vector<int>;
+      pads = new std::vector<int>;
+      part = new std::vector<int>;
+      len = new std::vector<int>;
+      evttree->SetBranchAddress(name+"_detId", &detId);
+      evttree->SetBranchAddress(name+"_pads", &pads);
+      evttree->SetBranchAddress(name+"_part", &part);
+      evttree->SetBranchAddress(name+"_len",&len);
+      if (IsMatched) {
+        matchTp = new std::vector<int>;
+        evttree->SetBranchAddress(name+"_matchTp", &matchTp);
+      }
+    }
   }
 
   void Init(TChain* evttree, TString name_, TString data_type_st, bool match_ = false) {
@@ -442,7 +491,7 @@ public:
     else if (data_type_st == "GEMPad") data_type_ = 4;
     else if (data_type_st == "SimHit") data_type_ = 5;
     else if (data_type_st == "TP") data_type_ = 6;
-    // else if (data_type_st == "RegionalMuon") data_type_ = 7;
+    else if (data_type_st == "GEMPadDigiCluster") data_type_ = 7;
     // else if (data_type_st == "MatchMuon") data_type_ = 8;
 
 
@@ -523,6 +572,16 @@ public:
       eventid->clear();
       charge->clear();
     }
+    else if (data_type == 7) {
+      ResetGP();
+      detId->clear();
+      pads->clear();
+      part->clear();
+      len->clear();
+      if (IsMatched) {
+        matchTp->clear();
+      }
+    }
   }
 
   void ResetGP() {
@@ -569,6 +628,8 @@ public:
   std::vector<int>*   type;
   std::vector<int>*   part;
   std::vector<int>*   pad;
+  std::vector<int>*   pads;
+  std::vector<int>*   len;
 
   //SimHit
   std::vector<int>* station;

@@ -27,24 +27,26 @@ public:
     DebugMode = dbg;
   }
   void Init() {
-    br_tp               .Init(eventTree,"tp","TP",false);
-    br_cscSimHit        .Init(eventTree,"cscSimHit","SimHit",true);
-    br_gemSimHit        .Init(eventTree,"gemSimHit","SimHit",true);
-    br_allCscStubsLCT   .Init(eventTree,"allCscStubsLCT","LCT",false);
-    br_allCscStubsALCT  .Init(eventTree,"allCscStubsALCT","ALCT",false);
-    br_allCscStubsCLCT  .Init(eventTree,"allCscStubsCLCT","CLCT",false);
-    br_allALCT          .Init(eventTree,"allALCT","ALCT",false);
-    br_allCLCT          .Init(eventTree,"allCLCT","CLCT",false);
-    br_allGemDigi       .Init(eventTree,"allGemDigi","GEM",false);
-    br_matchCscStubsLCT .Init(eventTree,"matchCscStubsLCT","LCT",true);
-    br_matchCscStubsALCT.Init(eventTree,"matchCscStubsALCT","ALCT",false);
-    br_matchCscStubsCLCT.Init(eventTree,"matchCscStubsCLCT","CLCT",false);
-    br_matchGemDigi     .Init(eventTree,"matchGemDigi","GEM",true);
-    br_matchCscGEM1     .Init(eventTree,"matchCscGEM1","GEMPad",true);
-    br_matchCscGEM2     .Init(eventTree,"matchCscGEM2","GEMPad",true);
-    br_allCscGEM1       .Init(eventTree,"allCscGEM1","GEMPad",true);
-    br_allCscGEM2       .Init(eventTree,"allCscGEM2","GEMPad",true);
-    br_gemPadDigi       .Init(eventTree,"gemPadDigi","GEMPad",false);
+    br_tp                    .Init(eventTree,"tp","TP",false);
+    br_cscSimHit             .Init(eventTree,"cscSimHit","SimHit",true);
+    br_gemSimHit             .Init(eventTree,"gemSimHit","SimHit",true);
+    br_allCscStubsLCT        .Init(eventTree,"allCscStubsLCT","LCT",false);
+    br_allCscStubsALCT       .Init(eventTree,"allCscStubsALCT","ALCT",false);
+    br_allCscStubsCLCT       .Init(eventTree,"allCscStubsCLCT","CLCT",false);
+    br_allALCT               .Init(eventTree,"allALCT","ALCT",false);
+    br_allCLCT               .Init(eventTree,"allCLCT","CLCT",false);
+    br_allGemDigi            .Init(eventTree,"allGemDigi","GEM",false);
+    br_matchCscStubsLCT      .Init(eventTree,"matchCscStubsLCT","LCT",true);
+    br_matchCscStubsALCT     .Init(eventTree,"matchCscStubsALCT","ALCT",false);
+    br_matchCscStubsCLCT     .Init(eventTree,"matchCscStubsCLCT","CLCT",false);
+    br_matchGemDigi          .Init(eventTree,"matchGemDigi","GEM",true);
+    br_matchCscGEM1          .Init(eventTree,"matchCscGEM1","GEMPad",true);
+    br_matchCscGEM2          .Init(eventTree,"matchCscGEM2","GEMPad",true);
+    br_allCscGEM1            .Init(eventTree,"allCscGEM1","GEMPad",true);
+    br_allCscGEM2            .Init(eventTree,"allCscGEM2","GEMPad",true);
+    br_gemPadDigi            .Init(eventTree,"gemPadDigi","GEMPad",false);
+    br_matchGemPadDigiCluster.Init(eventTree,"matchGemPadDigiCluster","GEMPadDigiCluster",true);
+    br_allGemPadDigiCluster  .Init(eventTree,"allGemPadDigiCluster","GEMPadDigiCluster",false);
   }
 
   void ReadTree() {
@@ -53,6 +55,7 @@ public:
     //TP
     const unsigned tp_size = br_tp.eta->size();
     for (unsigned i = 0; i < tp_size; ++i) {
+      // if(abs(br_tp.pdgid->at(i))!=13) cout << "Found one tp not muon : i = " << i  <<" pid = " << br_tp.pdgid->at(i) <<endl;
       if(abs(br_tp.pdgid->at(i))!=13) continue;
       tp tmp;
       tmp.pt      = br_tp.pt->at(i);
@@ -69,7 +72,12 @@ public:
       tmp.Index   = i;
       Evt.AddTP(tmp);
     };
-    if (DebugMode) cout << "Finished TP, Starting GEMSimHits" <<endl;
+    // cout << "MuonTPs size = " << Evt.MuonTPs.size() <<endl;
+    if (DebugMode) {
+      cout << "Finished TP, Branch size = " << tp_size << ", Saved size = ";
+      if (Evt.MuonTPs.size() != tp_size ) cout << ", Saved size = " << Evt.MuonTPs.size();
+      cout <<endl;
+    }
 
     //GEM SimHit
     const unsigned GEMSimHitSize = br_gemSimHit.phi->size();
@@ -261,9 +269,57 @@ public:
       tmp.eta = br_gemPadDigi.eta->at(i);
       tmp.r   = br_gemPadDigi.r->at(i);
       tmp.z   = br_gemPadDigi.z->at(i);
+      // cout << "z = " << tmp.z << ", r = " << tmp.r <<endl;
       Evt.AddGEMPadDigi(tmp);
     };
-    if (DebugMode) cout << "Finished GEMPadDigis, Starting TPCalc" <<endl;
+    if (DebugMode) cout << "Finished GEMPadDigis, Starting AllGEMPadDigiClusters" <<endl;
+
+    // AllGEMPadDigiClusters
+    const unsigned allGemPadDigiClusterSize = br_allGemPadDigiCluster.phi->size();
+    unsigned alllensum = 0;
+    for (unsigned i = 0; i < allGemPadDigiClusterSize; ++i) alllensum += br_allGemPadDigiCluster.len->at(i);
+    if (alllensum != br_allGemPadDigiCluster.pads->size()) cout << "Inconsistent Pads size for allGemPadDigiCluster" <<endl;
+    unsigned allGemPadDigiClusterPadIndex = 0;
+    for (unsigned i = 0; i < allGemPadDigiClusterSize; ++i) {
+      GEMPadDigiCluster tmp;
+      tmp.phi = br_allGemPadDigiCluster.phi->at(i);
+      tmp.eta = br_allGemPadDigiCluster.eta->at(i);
+      tmp.r = br_allGemPadDigiCluster.r->at(i);
+      tmp.z = br_allGemPadDigiCluster.z->at(i);
+      tmp.MatchTp = -1;
+      tmp.pads.clear();
+      for (unsigned k = 0; k < br_allGemPadDigiCluster.len->at(i); ++k) {
+        tmp.pads.push_back(br_allGemPadDigiCluster.pads->at(allGemPadDigiClusterPadIndex));
+        allGemPadDigiClusterPadIndex++;
+      }
+      Evt.AddGEMPadDigiCluster(tmp);
+    }
+    if (DebugMode) cout << "Finished AllGEMPadDigiClusters, Starting MatchGEMPadDigiClusters" <<endl;
+
+    // MatchedGEMPadDigiClusters
+    const unsigned matchGemPadDigiClusterSize = br_matchGemPadDigiCluster.phi->size();
+    unsigned matchlensum = 0;
+    for (unsigned i = 0; i < matchGemPadDigiClusterSize; ++i) matchlensum += br_matchGemPadDigiCluster.len->at(i);
+    if (matchlensum != br_matchGemPadDigiCluster.pads->size()) cout << "Inconsistent Pads size for matchGemPadDigiCluster" <<endl;
+    unsigned matchGemPadDigiClusterPadIndex = 0;
+    for (unsigned i = 0; i < matchGemPadDigiClusterSize; ++i) {
+      if (abs(br_tp.pdgid->at(br_matchGemPadDigiCluster.matchTp->at(i)))!=13) continue;
+      GEMPadDigiCluster tmp;
+      tmp.phi = br_matchGemPadDigiCluster.phi->at(i);
+      tmp.eta = br_matchGemPadDigiCluster.eta->at(i);
+      tmp.r = br_matchGemPadDigiCluster.r->at(i);
+      tmp.z = br_matchGemPadDigiCluster.z->at(i);
+      tmp.MatchTp = br_matchGemPadDigiCluster.matchTp->at(i);
+      if (tmp.MatchTp == -1)cout << " tmp.MatchTp = " << tmp.MatchTp;
+      tmp.pads.clear();
+      for (unsigned k = 0; k < br_matchGemPadDigiCluster.len->at(i); ++k) {
+        tmp.pads.push_back(br_matchGemPadDigiCluster.pads->at(matchGemPadDigiClusterPadIndex));
+        matchGemPadDigiClusterPadIndex++;
+      }
+      Evt.AddGEMPadDigiCluster(tmp);
+    }
+    if (DebugMode) cout << "Finished MatchGEMPadDigiClusters, Starting TPCalc" <<endl;
+
     Evt.FillTP();
     Evt.CalcSimHitAve();
     if (DebugMode) cout << "Finished Reading" <<endl;
@@ -276,6 +332,7 @@ public:
   Branch_Reader br_allALCT, br_allCLCT, br_allGemDigi;
   Branch_Reader br_matchCscStubsLCT, br_matchCscStubsALCT, br_matchCscStubsCLCT, br_matchGemDigi;
   Branch_Reader br_allCscGEM1, br_allCscGEM2, br_matchCscGEM1, br_matchCscGEM2, br_gemPadDigi;
+  Branch_Reader br_matchGemPadDigiCluster, br_allGemPadDigiCluster;
 
   bool DebugMode;
 
@@ -292,7 +349,7 @@ int MuonTPindex(unsigned Original_, vector<tp> MuonTPs_){
 }
 
 double CalcdR(CSCStub stub1, CSCStub stub2) {
-  return CalcdR(stub1.eta, stub2.eta, stub1.phi, stub2.phi);
+  return CalcdR(stub1.eta, stub2.eta, stub1.phi, stub2.phi)[0];
 }
 
 #endif
