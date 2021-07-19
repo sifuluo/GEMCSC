@@ -18,7 +18,7 @@ using namespace std;
 
 void GEMEff() {
   TChain *tree = new TChain("NtupleMaker/eventTree");
-  tree->Add("out_Run3_Cluster.root");
+  tree->Add("out_Run3.root");
 
   TreeReader *tr = new TreeReader(tree);
   TFile *out = new TFile("plots.root","RECREATE");
@@ -48,11 +48,12 @@ void GEMEff() {
   // Closest Digi plots
   bool LookForDigiInMatched = true;
   vector<TString> Close_T{"CSC","GEM","Cluster"};
-  vector<int> Close_V_div{   100 , 50 , 60, 80, 70 , 110};//dEta,dPhi,Eta,Phi,R,Z
+  vector<TString> Close_N{"ClosestDigi"};
+  vector<int> Close_V_div{   100 , 200 , 60, 80, 70 , 110};//dEta,dPhi,Eta,Phi,R,Z
   vector<float> Close_V_low{0  , 0  , -3, -4, 0  , 0};
-  vector<float> Close_V_up{ 0.1, 0.05, 3 , 4 , 700, 1100};
+  vector<float> Close_V_up{ 0.1, 0.02, 3 , 4 , 700, 1100};
   vector<vector<vector<vector<TH2F*> > > > TH2Plots;
-  TH2Plots.resize(5);
+  TH2Plots.resize(Close_N.size());
   for (auto& vec : TH2Plots) vec.resize(Close_T.size());
   for (unsigned iCT = 0; iCT < Close_T.size(); ++iCT) {
     for (auto& vec : TH2Plots) vec[iCT].resize(LDisks.size());
@@ -66,7 +67,38 @@ void GEMEff() {
         // TH2Plots[4][iCT][iCS][iCR] = new TH2F(Close_T[iCT] + "DigiRVPhi_" + LDisks[iCS] + LRings[iCR], "DigiRVPhi in " + Close_T[iCT] + " at " + LDisks[iCS] + " " + LRings[iCR] + "; phi; r", Close_V_div[3], Close_V_low[3], Close_V_up[3], Close_V_div[4], Close_V_low[4], Close_V_up[4] );
       }
     }
+  }// This initialization is completely rubbish and need to be revised. It will try to resize and repeatedly initialize for nothing if more than 1 Close_N
+
+  // GEM-CSC Matching plots
+  // Make the previous plot collections at plots[disk][ring][variable][dettype][name]
+  vector<TString> CSCGEMEff_N{"Matched","All"};
+  vector<vector<vector<vector<vector<TEfficiency*> > > > >CSCGEMEff;
+
+  CSCGEMEff.resize(LDisks.size());
+  for (unsigned iED = 0; iED < LDisks.size(); ++iED) {
+    CSCGEMEff[iED].resize(LRings.size());
+    for (unsigned iER = 0; iER < LRings.size(); ++iER) {
+      CSCGEMEff[iED][iER].resize(Eff_V.size());
+      for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
+        CSCGEMEff[iED][iER][iEV].resize(CSCGEMEff_N.size());
+        for (unsigned iEN = 0; iEN < CSCGEMEff_N.size(); ++iEN) {
+          CSCGEMEff[iED][iER][iEV][iEN].resize(4);
+          CSCGEMEff[iED][iER][iEV][iEN][0] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Either_" + LDisks[iED] + LRings[iER], "CSCGEM(Either) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][1] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_1_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer1) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][2] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_2_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer2) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][3] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Both_" + LDisks[iED] + LRings[iER], "CSCGEM(Both) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+        }
+      }
+    }
   }
+
+
+
+
+  // TP reconstruction plots
+  //how often is a sim muon matched to ALCT, CLCT, 1GEM cluster, 2GEM clusters? How often do you get any combination? How often do you get an LCT?
+  //What is the type of LCT matched to the muon? etc. questions like this need to be answered in order to understand any inefficiencies
+  //because there are 5 types of LCTs we can make in ME1/1: ALCT-CLCT, ALCT-CLCT-1GEM, ALCT-CLCT-2GEM, ALCT-2GEM and CLCT-2GEM, we need to know exactly which type was expected to show up in a chamber based on the presence of ALCT/CLCT/GEM, but somehow did not.
 
   Long64_t nentries = tree->GetEntries();
   for (Long64_t jentry = 0; jentry < nentries; ++jentry) {
@@ -223,9 +255,34 @@ void GEMEff() {
           if (ClosedR < 999) TH2Plots[0][2][disk][ring]->Fill(ClosedEta,ClosedPhi);
           // if (ClosedR < 999) cout << Form("dR = %f, dEta = %f, dPhi = %f", ClosedR, ClosedEta, ClosedPhi);
         }
+
+        if (CanRecoCSC && CanRecoGEM) {
+          for (unsigned icsc = 0; icsc < tp.CSCStubs.size(); ++icsc) {
+            bool hasGEM1 = (tp.CSCStubs[icsc].GEM1.pad != 255);
+            bool hasGEM2 = (tp.CSCStubs[icsc].GEM2.pad != 255);
+            for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
+              CSCGEMEff[disk][ring][iEV][0][0]->Fill((hasGEM1 || hasGEM2), CSCSimHitAve_V[iEV]);
+              CSCGEMEff[disk][ring][iEV][0][1]->Fill((hasGEM1), CSCSimHitAve_V[iEV]);
+              CSCGEMEff[disk][ring][iEV][0][2]->Fill((hasGEM2), CSCSimHitAve_V[iEV]);
+              CSCGEMEff[disk][ring][iEV][0][3]->Fill((hasGEM1 && hasGEM2), CSCSimHitAve_V[iEV]);
+            }
+          }
+        }
+      } // End of tp loop
+      for (unsigned icsc = 0; icsc < ThisStation.CSCStubs.size(); ++icsc) {
+        CSCStub lct = ThisStation.CSCStubs[icsc];
+        bool hasGEM1 = (lct.GEM1.pad != 255);
+        bool hasGEM2 = (lct.GEM2.pad != 255);
+        vector<float> CSCSimHitAve_V{lct.eta, lct.phi, lct.r, lct.z};
+        for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
+          CSCGEMEff[disk][ring][iEV][1][0]->Fill((hasGEM1 || hasGEM2), CSCSimHitAve_V[iEV]);
+          CSCGEMEff[disk][ring][iEV][1][1]->Fill((hasGEM1), CSCSimHitAve_V[iEV]);
+          CSCGEMEff[disk][ring][iEV][1][2]->Fill((hasGEM2), CSCSimHitAve_V[iEV]);
+          CSCGEMEff[disk][ring][iEV][1][3]->Fill((hasGEM1 && hasGEM2), CSCSimHitAve_V[iEV]);
+        }
       }
-    }
-  }
+    } // End of detector loop
+  } // End of event loop
   out->Write();
   out->Save();
   out->Close();

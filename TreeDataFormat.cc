@@ -39,6 +39,8 @@ struct SimHit{
 };
 
 struct GEMPadDigi{
+  int pad;
+  int part;
   float phi;
   float eta;
   float r;

@@ -106,6 +106,7 @@ public:
       Evt.AddCSCSimHit(tmp);
     };
     if (DebugMode) cout << "Finished CSCSimHits, Starting CSCStubs" <<endl;
+
     //CSCStubs
     const unsigned allCscStubsLCTSize = br_allCscStubsLCT.phi->size();
     for(unsigned i = 0; i < allCscStubsLCTSize; ++i) {
@@ -145,24 +146,30 @@ public:
             break;
           }
         }
-        tmp.GEM1.phi = br_allCscGEM1.phi->at(GEMPadIndex);
-        tmp.GEM1.eta = br_allCscGEM1.eta->at(GEMPadIndex);
-        tmp.GEM1.r   = br_allCscGEM1.r->at(GEMPadIndex);
-        tmp.GEM1.z   = br_allCscGEM1.z->at(GEMPadIndex);
-        tmp.GEM2.phi = br_allCscGEM2.phi->at(GEMPadIndex);
-        tmp.GEM2.eta = br_allCscGEM2.eta->at(GEMPadIndex);
-        tmp.GEM2.r   = br_allCscGEM2.r->at(GEMPadIndex);
-        tmp.GEM2.z   = br_allCscGEM2.z->at(GEMPadIndex);
+        tmp.GEM1.pad = br_allCscGEM1.pad->at(GEMPadIndex);
+        tmp.GEM1.part = br_allCscGEM1.part->at(GEMPadIndex);
+        // tmp.GEM1.phi = br_allCscGEM1.phi->at(GEMPadIndex);
+        // tmp.GEM1.eta = br_allCscGEM1.eta->at(GEMPadIndex);
+        // tmp.GEM1.r   = br_allCscGEM1.r->at(GEMPadIndex);
+        // tmp.GEM1.z   = br_allCscGEM1.z->at(GEMPadIndex);
+        tmp.GEM2.pad = br_allCscGEM2.pad->at(GEMPadIndex);
+        tmp.GEM2.part = br_allCscGEM2.part->at(GEMPadIndex);
+        // tmp.GEM2.phi = br_allCscGEM2.phi->at(GEMPadIndex);
+        // tmp.GEM2.eta = br_allCscGEM2.eta->at(GEMPadIndex);
+        // tmp.GEM2.r   = br_allCscGEM2.r->at(GEMPadIndex);
+        // tmp.GEM2.z   = br_allCscGEM2.z->at(GEMPadIndex);
       }
       else {
-        tmp.GEM1.phi = 0.;
-        tmp.GEM1.eta = 0.;
-        tmp.GEM1.r   = 0.;
-        tmp.GEM1.z   = 0.;
-        tmp.GEM2.phi = 0.;
-        tmp.GEM2.eta = 0.;
-        tmp.GEM2.r   = 0.;
-        tmp.GEM2.z   = 0.;
+        tmp.GEM1.pad = 255;
+        // tmp.GEM1.phi = 0.;
+        // tmp.GEM1.eta = 0.;
+        // tmp.GEM1.r   = 0.;
+        // tmp.GEM1.z   = 0.;
+        tmp.GEM2.pad = 255;
+        // tmp.GEM2.phi = 0.;
+        // tmp.GEM2.eta = 0.;
+        // tmp.GEM2.r   = 0.;
+        // tmp.GEM2.z   = 0.;
       }
       Evt.AddCSCStub(tmp);
     };
@@ -208,24 +215,30 @@ public:
             break;
           }
         }
-        tmp.GEM1.phi = br_matchCscGEM1.phi->at(GEMPadIndex);
-        tmp.GEM1.eta = br_matchCscGEM1.eta->at(GEMPadIndex);
-        tmp.GEM1.r   = br_matchCscGEM1.r->at(GEMPadIndex);
-        tmp.GEM1.z   = br_matchCscGEM1.z->at(GEMPadIndex);
-        tmp.GEM2.phi = br_matchCscGEM2.phi->at(GEMPadIndex);
-        tmp.GEM2.eta = br_matchCscGEM2.eta->at(GEMPadIndex);
-        tmp.GEM2.r   = br_matchCscGEM2.r->at(GEMPadIndex);
-        tmp.GEM2.z   = br_matchCscGEM2.z->at(GEMPadIndex);
+        tmp.GEM1.pad = br_matchCscGEM1.pad->at(GEMPadIndex);
+        tmp.GEM1.part= br_matchCscGEM1.part->at(GEMPadIndex);
+        // tmp.GEM1.phi = br_matchCscGEM1.phi->at(GEMPadIndex);
+        // tmp.GEM1.eta = br_matchCscGEM1.eta->at(GEMPadIndex);
+        // tmp.GEM1.r   = br_matchCscGEM1.r->at(GEMPadIndex);
+        // tmp.GEM1.z   = br_matchCscGEM1.z->at(GEMPadIndex);
+        tmp.GEM2.pad = br_matchCscGEM2.pad->at(GEMPadIndex);
+        tmp.GEM2.part= br_matchCscGEM2.part->at(GEMPadIndex);
+        // tmp.GEM2.phi = br_matchCscGEM2.phi->at(GEMPadIndex);
+        // tmp.GEM2.eta = br_matchCscGEM2.eta->at(GEMPadIndex);
+        // tmp.GEM2.r   = br_matchCscGEM2.r->at(GEMPadIndex);
+        // tmp.GEM2.z   = br_matchCscGEM2.z->at(GEMPadIndex);
       }
       else {
-        tmp.GEM1.phi = 0.;
-        tmp.GEM1.eta = 0.;
-        tmp.GEM1.r   = 0.;
-        tmp.GEM1.z   = 0.;
-        tmp.GEM2.phi = 0.;
-        tmp.GEM2.eta = 0.;
-        tmp.GEM2.r   = 0.;
-        tmp.GEM2.z   = 0.;
+        tmp.GEM1.pad = 255;
+        // tmp.GEM1.phi = 0.;
+        // tmp.GEM1.eta = 0.;
+        // tmp.GEM1.r   = 0.;
+        // tmp.GEM1.z   = 0.;
+        tmp.GEM2.pad = 255;
+        // tmp.GEM2.phi = 0.;
+        // tmp.GEM2.eta = 0.;
+        // tmp.GEM2.r   = 0.;
+        // tmp.GEM2.z   = 0.;
       }
 
       Evt.AddCSCStub(tmp);
