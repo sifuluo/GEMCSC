@@ -40,7 +40,7 @@ void GEMEff() {
     for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
       DetEff[iET][iEV].resize(LDisks.size());
       for (unsigned iES = 0; iES < LDisks.size(); ++iES) {
-        DetEff[iET][iEV][iES] = new TEfficiency(Eff_T[iET] + "EffVs" + Eff_V[iEV] + "_" + LDisks[iES], Eff_T[iET] + " Efficiency Vs TP " + Eff_V[iEV] + " at " + LDisks[iES] + "; TP " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+        DetEff[iET][iEV][iES] = new TEfficiency(Eff_T[iET] + "EffVs" + Eff_V[iEV] + "_" + LDisks[iES], Eff_T[iET] + " Efficiency Vs TP SimHit " + Eff_V[iEV] + " at " + LDisks[iES] + "; TP SimHit " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
       }
     }
   }
@@ -83,10 +83,10 @@ void GEMEff() {
         CSCGEMEff[iED][iER][iEV].resize(CSCGEMEff_N.size());
         for (unsigned iEN = 0; iEN < CSCGEMEff_N.size(); ++iEN) {
           CSCGEMEff[iED][iER][iEV][iEN].resize(4);
-          CSCGEMEff[iED][iER][iEV][iEN][0] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Either_" + LDisks[iED] + LRings[iER], "CSCGEM(Either) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
-          CSCGEMEff[iED][iER][iEV][iEN][1] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_1_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer1) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
-          CSCGEMEff[iED][iER][iEV][iEN][2] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_2_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer2) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
-          CSCGEMEff[iED][iER][iEV][iEN][3] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Both_" + LDisks[iED] + LRings[iER], "CSCGEM(Both) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][0] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Either_" + LDisks[iED] + LRings[iER], "CSCGEM(Either) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][1] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_1_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer1) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][2] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_2_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer2) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][3] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Both_" + LDisks[iED] + LRings[iER], "CSCGEM(Both) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
         }
       }
     }
