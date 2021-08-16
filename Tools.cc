@@ -36,9 +36,9 @@ pair<unsigned,unsigned> DiskAndRing(float r_, float z_){
     if     (r<360 && r>120) DiskRingPair.second=0; //4/1
     else if(r<700 && r>360) DiskRingPair.second=1; //4/2
   }
-  // else if (z < 560) {
-  //   DiskRingPair = make_pair(4,0);
-  // }
+  else if (z < 560) {
+    DiskRingPair = make_pair(0,3);
+  }
   if(DiskRingPair.first==999 || DiskRingPair.second==999) {
     cout << "r = " << r << ", z = " << z << endl;
     throw runtime_error("DiskAndRing invalid r-z coordinate");
@@ -92,17 +92,17 @@ vector<float> CalcdR(float eta1, float eta2, float phi1, float phi2) {
 }
 
 bool IsCloseCSC(float eta1, float eta2, float phi1, float phi2) {
-  if (fabs(eta1 - eta2) < 0.028 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.007) return true;
+  if (fabs(eta1 - eta2) < 0.0181205 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.0040559) return true;
   return false;
 }
 
 bool IsCloseGEM(float eta1, float eta2, float phi1, float phi2) {
-  if (fabs(eta1 - eta2) < 0.038 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.002) return true;
+  if (fabs(eta1 - eta2) < 0.0392362 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.000623863) return true;
   return false;
 }
 
 bool IsCloseCluster(float eta1, float eta2, float phi1, float phi2) {
-  if (fabs(eta1 - eta2) < 0.2 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.1) return true;
+  if (fabs(eta1 - eta2) < 0.037425 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.00141607) return true;
   return false;
 }
 

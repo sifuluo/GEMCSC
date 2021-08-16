@@ -18,18 +18,20 @@ using namespace std;
 
 void GEMEff() {
   TChain *tree = new TChain("NtupleMaker/eventTree");
-  tree->Add("out_Run3.root");
+  tree->Add("out_Run4.root");
+  // tree->Add("pu.root");
 
   TreeReader *tr = new TreeReader(tree);
   TFile *out = new TFile("plots.root","RECREATE");
 
   // Lists of Disks and Rings
   vector<TString> LDisks{"D1","D2"};
-  vector<TString> LRings{"R1","R2","R3"};
+  vector<TString> LRings{"R1","R2","R3","R0"};
 
   // Efficiency plots
   vector<TString> Eff_T{"CSCReco","CSCMatch","GEMReco","GEMMatch","ClusterReco","ClusterMatch"};
   vector<TString> Eff_V{"Eta","Phi","R"};
+  vector<TString> Eff_V2{"#eta","#phi","R"};
   vector<int> Eff_V_div{60,70,80};
   vector<float> Eff_V_low{-3.0,-3.5,0};
   vector<float> Eff_V_up{3.0,3.5,800};
@@ -40,7 +42,7 @@ void GEMEff() {
     for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
       DetEff[iET][iEV].resize(LDisks.size());
       for (unsigned iES = 0; iES < LDisks.size(); ++iES) {
-        DetEff[iET][iEV][iES] = new TEfficiency(Eff_T[iET] + "EffVs" + Eff_V[iEV] + "_" + LDisks[iES], Eff_T[iET] + " Efficiency Vs TP SimHit " + Eff_V[iEV] + " at " + LDisks[iES] + "; TP SimHit " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+        DetEff[iET][iEV][iES] = new TEfficiency(Eff_T[iET] + "EffVs" + Eff_V[iEV] + "_" + LDisks[iES], Eff_T[iET] + " Efficiency Vs TP SimHit " + Eff_V2[iEV] + " at " + LDisks[iES] + "; TP SimHit " + Eff_V2[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
       }
     }
   }
@@ -49,9 +51,9 @@ void GEMEff() {
   bool LookForDigiInMatched = true;
   vector<TString> Close_T{"CSC","GEM","Cluster"};
   vector<TString> Close_N{"ClosestDigi"};
-  vector<int> Close_V_div{   100 , 200 , 60, 80, 70 , 110};//dEta,dPhi,Eta,Phi,R,Z
+  vector<int> Close_V_div{   200 , 200 , 60, 80, 70 , 110};//dEta,dPhi,Eta,Phi,R,Z
   vector<float> Close_V_low{0  , 0  , -3, -4, 0  , 0};
-  vector<float> Close_V_up{ 0.1, 0.02, 3 , 4 , 700, 1100};
+  vector<float> Close_V_up{ 0.05, 0.002, 3 , 4 , 700, 1100};
   vector<vector<vector<vector<TH2F*> > > > TH2Plots;
   TH2Plots.resize(Close_N.size());
   for (auto& vec : TH2Plots) vec.resize(Close_T.size());
@@ -60,7 +62,7 @@ void GEMEff() {
     for (unsigned iCS = 0; iCS < LDisks.size(); ++iCS) {
       for (auto& vec : TH2Plots) vec[iCT][iCS].resize(LRings.size());
       for (unsigned iCR = 0; iCR < LRings.size(); ++iCR) {
-        TH2Plots[0][iCT][iCS][iCR] = new TH2F(Close_T[iCT] + "ClosestDigi_" + LDisks[iCS] + LRings[iCR], "Closest Digi in " + Close_T[iCT] + " at " + LDisks[iCS] + " " + LRings[iCR] + "; Delta Eta; Delta Phi", Close_V_div[0], Close_V_low[0], Close_V_up[0], Close_V_div[1], Close_V_low[1], Close_V_up[1] );
+        TH2Plots[0][iCT][iCS][iCR] = new TH2F(Close_T[iCT] + "ClosestDigi_" + LDisks[iCS] + LRings[iCR], "Closest Digi in " + Close_T[iCT] + " at " + LDisks[iCS] + " " + LRings[iCR] + "; #Delta #eta; #Delta #phi", Close_V_div[0], Close_V_low[0], Close_V_up[0], Close_V_div[1], Close_V_low[1], Close_V_up[1] );
         // TH2Plots[1][iCT][iCS][iCR] = new TH2F(Close_T[iCT] + "SimHitRVZ_" + LDisks[iCS] + LRings[iCR], "SimHitRVZ in " + Close_T[iCT] + " at " + LDisks[iCS] + " " + LRings[iCR] + "; z; r", Close_V_div[5], Close_V_low[5], Close_V_up[5], Close_V_div[4], Close_V_low[4], Close_V_up[4] );
         // TH2Plots[2][iCT][iCS][iCR] = new TH2F(Close_T[iCT] + "SimHitRVPhi_" + LDisks[iCS] + LRings[iCR], "SimHitRVPhi in " + Close_T[iCT] + " at " + LDisks[iCS] + " " + LRings[iCR] + "; phi; r", Close_V_div[3], Close_V_low[3], Close_V_up[3], Close_V_div[4], Close_V_low[4], Close_V_up[4] );
         // TH2Plots[3][iCT][iCS][iCR] = new TH2F(Close_T[iCT] + "DigiRVZ_" + LDisks[iCS] + LRings[iCR], "DigiRVZ in " + Close_T[iCT] + " at " + LDisks[iCS] + " " + LRings[iCR] + "; z; r", Close_V_div[5], Close_V_low[5], Close_V_up[5], Close_V_div[4], Close_V_low[4], Close_V_up[4] );
@@ -83,10 +85,10 @@ void GEMEff() {
         CSCGEMEff[iED][iER][iEV].resize(CSCGEMEff_N.size());
         for (unsigned iEN = 0; iEN < CSCGEMEff_N.size(); ++iEN) {
           CSCGEMEff[iED][iER][iEV][iEN].resize(4);
-          CSCGEMEff[iED][iER][iEV][iEN][0] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Either_" + LDisks[iED] + LRings[iER], "CSCGEM(Either) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
-          CSCGEMEff[iED][iER][iEV][iEN][1] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_1_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer1) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
-          CSCGEMEff[iED][iER][iEV][iEN][2] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_2_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer2) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
-          CSCGEMEff[iED][iER][iEV][iEN][3] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Both_" + LDisks[iED] + LRings[iER], "CSCGEM(Both) Efficiency Vs " + Eff_V[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][0] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Either_" + LDisks[iED] + LRings[iER], "CSCGEM(Either) Efficiency Vs " + Eff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V2[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][1] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_1_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer1) Efficiency Vs " + Eff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V2[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][2] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_2_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer2) Efficiency Vs " + Eff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V2[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][3] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Both_" + LDisks[iED] + LRings[iER], "CSCGEM(Both) Efficiency Vs " + Eff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V2[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
         }
       }
     }
@@ -286,5 +288,4 @@ void GEMEff() {
   out->Write();
   out->Save();
   out->Close();
-
 }
