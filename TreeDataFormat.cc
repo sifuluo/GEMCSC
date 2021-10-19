@@ -62,10 +62,19 @@ struct CSCStub{
   float r;
   float z;
   int   bend;
-  int   slope;
-  int   strip8;
   int   pattern;
+  int   slope;
+  int   quality;
+  int   detId;
+  int   keywire;
+  int   strip;
+  int   strip8;
   bool  valid;
+  int   type;
+  int   GEM1pad;
+  int   GEM1part;
+  int   GEM2pad;
+  int   GEM2part;
   int   MatchTp;
   vector<int> CLCT_hits;
   vector<int> CLCT_positions;
@@ -344,6 +353,10 @@ public:
       strip8 = new std::vector<int>;
       valid = new std::vector<bool>;
       type = new std::vector<int>;
+      GEM1pad = new std::vector<int>;
+      GEM1part = new std::vector<int>;
+      GEM2pad = new std::vector<int>;
+      GEM2part = new std::vector<int>;
       evttree->SetBranchAddress(name+"_bend", &bend);
       evttree->SetBranchAddress(name+"_pattern", &pattern);
       evttree->SetBranchAddress(name+"_slope", &slope);
@@ -354,6 +367,10 @@ public:
       evttree->SetBranchAddress(name+"_strip8", &strip8);
       evttree->SetBranchAddress(name+"_valid", &valid);
       evttree->SetBranchAddress(name+"_type", &type);
+      evttree->SetBranchAddress(name+"_GEM1pad", &GEM1pad);
+      evttree->SetBranchAddress(name+"_GEM1part", &GEM1part);
+      evttree->SetBranchAddress(name+"_GEM2pad", &GEM2pad);
+      evttree->SetBranchAddress(name+"_GEM2part", &GEM2part);
       if (IsMatched) {
         matchTp = new std::vector<int>;
         evttree->SetBranchAddress(name+"_matchTp", &matchTp);
@@ -515,6 +532,10 @@ public:
       strip8->clear();
       valid->clear();
       type->clear();
+      GEM1pad->clear();
+      GEM1part->clear();
+      GEM2pad->clear();
+      GEM2part->clear();
       if (IsMatched) {
         matchTp->clear();
       }
@@ -629,6 +650,10 @@ public:
   std::vector<int>*   strip8;
   std::vector<bool>*  valid;
   std::vector<int>*   type;
+  std::vector<int>*   GEM1pad;
+  std::vector<int>*   GEM1part;
+  std::vector<int>*   GEM2pad;
+  std::vector<int>*   GEM2part;
   std::vector<int>*   part;
   std::vector<int>*   pad;
   std::vector<int>*   pads;

@@ -116,10 +116,19 @@ public:
       tmp.r       = br_allCscStubsLCT.r->at(i);
       tmp.z       = br_allCscStubsLCT.z->at(i);
       tmp.bend    = br_allCscStubsLCT.bend->at(i);
-      tmp.slope   = br_allCscStubsCLCT.slope->at(i);
-      tmp.strip8  = br_allCscStubsLCT.strip8->at(i);
       tmp.pattern = br_allCscStubsLCT.pattern->at(i);
+      tmp.slope   = br_allCscStubsLCT.slope->at(i);
+      tmp.quality = br_allCscStubsLCT.quality->at(i);
+      tmp.keywire = br_allCscStubsLCT.keywire->at(i);
+      tmp.strip   = br_allCscStubsLCT.keywire->at(i);
+      tmp.strip8  = br_allCscStubsLCT.strip8->at(i);
       tmp.valid   = br_allCscStubsLCT.valid->at(i);
+      tmp.type    = br_allCscStubsLCT.type->at(i);
+      tmp.detId   = br_allCscStubsLCT.detId->at(i);
+      tmp.GEM1pad = br_allCscStubsLCT.GEM1pad->at(i);
+      tmp.GEM1part= br_allCscStubsLCT.GEM1part->at(i);
+      tmp.GEM2pad = br_allCscStubsLCT.GEM2pad->at(i);
+      tmp.GEM2part= br_allCscStubsLCT.GEM2part->at(i);
       tmp.MatchTp = -1;
       tmp.CLCT_hits.clear();
       tmp.CLCT_positions.clear();
@@ -133,7 +142,8 @@ public:
       unsigned GEMPadIndex;
       bool found = false;
       for (unsigned j = 0; j < br_allCscGEM1.phi->size(); ++j) {
-        if (br_allCscGEM1.matchCSC->at(j) == i) {
+        if (br_allCscGEM1.matchCSC->at(j) < 0) continue;
+        if ((unsigned)br_allCscGEM1.matchCSC->at(j) == i) {
           GEMPadIndex = j;
           found = true;
           break;
@@ -141,7 +151,8 @@ public:
       }
       if (found) {
         for (unsigned j = 0; j < br_allCscGEM2.phi->size(); ++j) {
-          if (br_allCscGEM2.matchCSC->at(j) == i) {
+          if (br_allCscGEM2.matchCSC->at(j) < 0) continue;
+          if ((unsigned)br_allCscGEM2.matchCSC->at(j) == i) {
             if (GEMPadIndex != j) cout << " allCscStubsLCT GEM1 and GEM2 inconsistent" <<endl;
             break;
           }
@@ -185,10 +196,19 @@ public:
       tmp.r       = br_matchCscStubsLCT.r->at(i);
       tmp.z       = br_matchCscStubsLCT.z->at(i);
       tmp.bend    = br_matchCscStubsLCT.bend->at(i);
-      tmp.slope   = br_matchCscStubsCLCT.slope->at(i);
-      tmp.strip8  = br_matchCscStubsLCT.strip8->at(i);
       tmp.pattern = br_matchCscStubsLCT.pattern->at(i);
+      tmp.slope   = br_matchCscStubsLCT.slope->at(i);
+      tmp.quality = br_matchCscStubsLCT.quality->at(i);
+      tmp.keywire = br_matchCscStubsLCT.keywire->at(i);
+      tmp.strip   = br_matchCscStubsLCT.keywire->at(i);
+      tmp.strip8  = br_matchCscStubsLCT.strip8->at(i);
       tmp.valid   = br_matchCscStubsLCT.valid->at(i);
+      tmp.type    = br_matchCscStubsLCT.type->at(i);
+      tmp.detId   = br_matchCscStubsLCT.detId->at(i);
+      tmp.GEM1pad = br_matchCscStubsLCT.GEM1pad->at(i);
+      tmp.GEM1part= br_matchCscStubsLCT.GEM1part->at(i);
+      tmp.GEM2pad = br_matchCscStubsLCT.GEM2pad->at(i);
+      tmp.GEM2part= br_matchCscStubsLCT.GEM2part->at(i);
       tmp.MatchTp = br_matchCscStubsLCT.matchTp->at(i);
       tmp.CLCT_hits.clear();
       tmp.CLCT_positions.clear();
@@ -202,7 +222,8 @@ public:
       unsigned GEMPadIndex;
       bool found = false;
       for (unsigned j = 0; j < br_matchCscGEM1.phi->size(); ++j) {
-        if (br_matchCscGEM1.matchCSC->at(j) == i) {
+        if (br_matchCscGEM1.matchCSC->at(j) < 0) continue;
+        if ((unsigned)br_matchCscGEM1.matchCSC->at(j) == i) {
           GEMPadIndex = j;
           found = true;
           break;
@@ -210,7 +231,8 @@ public:
       }
       if (found) {
         for (unsigned j = 0; j < br_matchCscGEM2.phi->size(); ++j) {
-          if (br_matchCscGEM2.matchCSC->at(j) == i) {
+          if (br_matchCscGEM2.matchCSC->at(j) < 0) continue;
+          if ((unsigned)br_matchCscGEM2.matchCSC->at(j) == i) {
             if (GEMPadIndex != j) cout << " matchCscStubsLCT GEM1 and GEM2 inconsistent" <<endl;
             break;
           }
@@ -282,6 +304,8 @@ public:
       tmp.eta = br_gemPadDigi.eta->at(i);
       tmp.r   = br_gemPadDigi.r->at(i);
       tmp.z   = br_gemPadDigi.z->at(i);
+      tmp.part= br_gemPadDigi.part->at(i);
+      tmp.pad = br_gemPadDigi.pad->at(i);
       // cout << "z = " << tmp.z << ", r = " << tmp.r <<endl;
       Evt.AddGEMPadDigi(tmp);
     };
@@ -301,7 +325,7 @@ public:
       tmp.z = br_allGemPadDigiCluster.z->at(i);
       tmp.MatchTp = -1;
       tmp.pads.clear();
-      for (unsigned k = 0; k < br_allGemPadDigiCluster.len->at(i); ++k) {
+      for (unsigned k = 0; k < (unsigned)br_allGemPadDigiCluster.len->at(i); ++k) {
         tmp.pads.push_back(br_allGemPadDigiCluster.pads->at(allGemPadDigiClusterPadIndex));
         allGemPadDigiClusterPadIndex++;
       }
@@ -325,7 +349,7 @@ public:
       tmp.MatchTp = br_matchGemPadDigiCluster.matchTp->at(i);
       if (tmp.MatchTp == -1)cout << " tmp.MatchTp = " << tmp.MatchTp;
       tmp.pads.clear();
-      for (unsigned k = 0; k < br_matchGemPadDigiCluster.len->at(i); ++k) {
+      for (unsigned k = 0; k < (unsigned)br_matchGemPadDigiCluster.len->at(i); ++k) {
         tmp.pads.push_back(br_matchGemPadDigiCluster.pads->at(matchGemPadDigiClusterPadIndex));
         matchGemPadDigiClusterPadIndex++;
       }

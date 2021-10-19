@@ -18,23 +18,31 @@ using namespace std;
 
 void GEMEff() {
   TChain *tree = new TChain("NtupleMaker/eventTree");
-  tree->Add("out_Run4.root");
+  // tree->Add("out_Run4.root");
+  tree->Add("ntuple/Privatea_Run4_0.root");
+  // tree->Add("ntuple/Privatec_Run4.root");
   // tree->Add("pu.root");
 
   TreeReader *tr = new TreeReader(tree);
   TFile *out = new TFile("plots.root","RECREATE");
+  out->cd();
 
   // Lists of Disks and Rings
   vector<TString> LDisks{"D1","D2"};
-  vector<TString> LRings{"R1","R2","R3","R0"};
+  vector<TString> LRings{"R1","R2"};
+  // vector<TString> LRings{"R1","R2","R3","R0"};
+
+  // Branch entry Multiplicity
+  // TH2F* Multi = new TH2F("Multi","Branch Multiplicity; Branches; Multiplicity",20,0,20,10,0,10);
+  // vector<TString> LBranches{"tp","cscSimHit","gemSimHit"};
 
   // Efficiency plots
   vector<TString> Eff_T{"CSCReco","CSCMatch","GEMReco","GEMMatch","ClusterReco","ClusterMatch"};
-  vector<TString> Eff_V{"Eta","Phi","R"};
-  vector<TString> Eff_V2{"#eta","#phi","R"};
-  vector<int> Eff_V_div{60,70,80};
-  vector<float> Eff_V_low{-3.0,-3.5,0};
-  vector<float> Eff_V_up{3.0,3.5,800};
+  vector<TString> Eff_V{"Eta","Phi","R","z"};
+  vector<TString> Eff_V2{"#eta","#phi","R","z"};
+  vector<int> Eff_V_div{60,70,80,220};
+  vector<float> Eff_V_low{-3.0,-3.5,0,-1100};
+  vector<float> Eff_V_up{3.0,3.5,800,1100};
   vector<vector<vector <TEfficiency*> > > DetEff;
   DetEff.resize(Eff_T.size());
   for (unsigned iET = 0; iET < Eff_T.size(); ++iET) {
@@ -42,7 +50,10 @@ void GEMEff() {
     for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
       DetEff[iET][iEV].resize(LDisks.size());
       for (unsigned iES = 0; iES < LDisks.size(); ++iES) {
-        DetEff[iET][iEV][iES] = new TEfficiency(Eff_T[iET] + "EffVs" + Eff_V[iEV] + "_" + LDisks[iES], Eff_T[iET] + " Efficiency Vs TP SimHit " + Eff_V2[iEV] + " at " + LDisks[iES] + "; TP SimHit " + Eff_V2[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+        TString PlotName = Eff_T[iET] + "EffVs" + Eff_V[iEV] + "_" + LDisks[iES];
+        TString PlotTitle = Eff_T[iET] + " Efficiency Vs TP SimHit " + Eff_V2[iEV] + " at " + LDisks[iES] + "; TP SimHit " + Eff_V2[iEV] + "; Efficiency";
+        DetEff[iET][iEV][iES] = new TEfficiency(PlotName, PlotTitle, Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+        DetEff[iET][iEV][iES]->SetDirectory(out);
       }
     }
   }
@@ -51,8 +62,8 @@ void GEMEff() {
   bool LookForDigiInMatched = true;
   vector<TString> Close_T{"CSC","GEM","Cluster"};
   vector<TString> Close_N{"ClosestDigi"};
-  vector<int> Close_V_div{   200 , 200 , 60, 80, 70 , 110};//dEta,dPhi,Eta,Phi,R,Z
-  vector<float> Close_V_low{0  , 0  , -3, -4, 0  , 0};
+  vector<int> Close_V_div{   200 , 200 , 60, 80, 70 , 220};//dEta,dPhi,Eta,Phi,R,Z
+  vector<float> Close_V_low{0  , 0  , -3, -4, 0  , -1100};
   vector<float> Close_V_up{ 0.05, 0.002, 3 , 4 , 700, 1100};
   vector<vector<vector<vector<TH2F*> > > > TH2Plots;
   TH2Plots.resize(Close_N.size());
@@ -73,27 +84,44 @@ void GEMEff() {
 
   // GEM-CSC Matching plots
   // Make the previous plot collections at plots[disk][ring][variable][dettype][name]
-  vector<TString> CSCGEMEff_N{"Matched","All"};
+  vector<TString> CSCGEMEff_N{"MatchedSH","AllLCT","MatchedLCT"};
+  vector<TString> CSCGEMEff_V{"Eta","Phi","R","z","Slope"};
+  vector<TString> CSCGEMEff_V2{"#eta","#phi","R","z","Slope"};
+  vector<int> CSCGEMEff_V_div{60,70,80,220,20};
+  vector<float> CSCGEMEff_V_low{-3.0,-3.5,0,-1100,-10};
+  vector<float> CSCGEMEff_V_up{3.0,3.5,800,1100,10};
   vector<vector<vector<vector<vector<TEfficiency*> > > > >CSCGEMEff;
 
   CSCGEMEff.resize(LDisks.size());
   for (unsigned iED = 0; iED < LDisks.size(); ++iED) {
     CSCGEMEff[iED].resize(LRings.size());
     for (unsigned iER = 0; iER < LRings.size(); ++iER) {
-      CSCGEMEff[iED][iER].resize(Eff_V.size());
-      for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
+      CSCGEMEff[iED][iER].resize(CSCGEMEff_V.size());
+      for (unsigned iEV = 0; iEV < CSCGEMEff_V.size(); ++iEV) {
         CSCGEMEff[iED][iER][iEV].resize(CSCGEMEff_N.size());
         for (unsigned iEN = 0; iEN < CSCGEMEff_N.size(); ++iEN) {
           CSCGEMEff[iED][iER][iEV][iEN].resize(4);
-          CSCGEMEff[iED][iER][iEV][iEN][0] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Either_" + LDisks[iED] + LRings[iER], "CSCGEM(Either) Efficiency Vs " + Eff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V2[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
-          CSCGEMEff[iED][iER][iEV][iEN][1] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_1_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer1) Efficiency Vs " + Eff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V2[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
-          CSCGEMEff[iED][iER][iEV][iEN][2] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_2_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer2) Efficiency Vs " + Eff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V2[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
-          CSCGEMEff[iED][iER][iEV][iEN][3] = new TEfficiency("CSCGEMEffVs" + Eff_V[iEV] + CSCGEMEff_N[iEN] + "LCT_Both_" + LDisks[iED] + LRings[iER], "CSCGEM(Both) Efficiency Vs " + Eff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + Eff_V2[iEV] + "; Efficiency", Eff_V_div[iEV], Eff_V_low[iEV], Eff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][0] = new TEfficiency("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "GP_Either_" + LDisks[iED] + LRings[iER], "CSCGEM(Either) Efficiency Vs " + CSCGEMEff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + CSCGEMEff_V2[iEV] + "; Efficiency", CSCGEMEff_V_div[iEV], CSCGEMEff_V_low[iEV], CSCGEMEff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][1] = new TEfficiency("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "GP_1_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer1) Efficiency Vs " + CSCGEMEff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + CSCGEMEff_V2[iEV] + "; Efficiency", CSCGEMEff_V_div[iEV], CSCGEMEff_V_low[iEV], CSCGEMEff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][2] = new TEfficiency("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "GP_2_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer2) Efficiency Vs " + CSCGEMEff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + CSCGEMEff_V2[iEV] + "; Efficiency", CSCGEMEff_V_div[iEV], CSCGEMEff_V_low[iEV], CSCGEMEff_V_up[iEV]);
+          CSCGEMEff[iED][iER][iEV][iEN][3] = new TEfficiency("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "GP_Both_" + LDisks[iED] + LRings[iER], "CSCGEM(Both) Efficiency Vs " + CSCGEMEff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + CSCGEMEff_V2[iEV] + "; Efficiency", CSCGEMEff_V_div[iEV], CSCGEMEff_V_low[iEV], CSCGEMEff_V_up[iEV]);
+          for (auto eff_ : CSCGEMEff[iED][iER][iEV][iEN]) eff_->SetDirectory(out);
         }
       }
     }
   }
 
+  vector<vector<TH2F*> >dPhiVsSlope;
+  dPhiVsSlope.resize(LDisks.size());
+  for (unsigned iED = 0; iED < LDisks.size(); ++iED) {
+    dPhiVsSlope[iED].resize(LRings.size());
+    for (unsigned iER = 0; iER < LRings.size(); ++iER) {
+      dPhiVsSlope[iED][iER] = new TH2F("dPhiVsSlope_" + LDisks[iED] + LRings[iER],"#Delta #phi Vs Slope at " + LDisks[iED] + " " + LRings[iER] + "; Slope; #Delta #phi", 30,-15,15,200,-1,1);
+    }
+  }
+
+  int cancscpos(0),cancscneg(0),cangempos(0),cangemneg(0),canbothpos(0),canbothneg(0);
+  int tppos(0),tpneg(0),evttppos(0),evttpneg(0);
 
 
 
@@ -110,11 +138,17 @@ void GEMEff() {
     tree->GetEntry(jentry);
     // cout << "Finished Loading event" <<endl;
     tr->ReadTree();
+    vector<tp>& tps = tr->Evt.MuonTPs;
+    for (tp thistp : tps) {
+      if (thistp.eta > 0) evttppos++;
+      else evttpneg++;
+    }
     // cout << "READ" <<endl;
     vector<vector<StationData> >& Stations = tr->Evt.Stations;
 
     for (unsigned disk = 0; disk < Stations.size(); ++disk) for (unsigned ring = 0; ring < Stations[disk].size(); ++ring) {
       if (disk > 1) break; // Considering only first 2 disks;
+      if (ring >= LRings.size()) continue;
       StationData& ThisStation = Stations[disk][ring];
       for (unsigned ittp = 0; ittp < ThisStation.TPInfos.size(); ++ittp) {
         TPContent& tp = ThisStation.TPInfos[ittp];
@@ -122,8 +156,17 @@ void GEMEff() {
         const vector<float> GEMSimHitAve_V{tp.GEMSimHitAve.eta, tp.GEMSimHitAve.phi, tp.GEMSimHitAve.r, tp.GEMSimHitAve.z};
         bool CanRecoCSC = (tp.NSimHitsCSC > 3);
         bool CanRecoGEM = (tp.NSimHitsGEM > 0);
-
+        if (!CanRecoCSC) {
+          cout << "This TP cannot reconstruct CSCStubs, NSimHitsCSC = " << tp.NSimHitsCSC << ", tp eta = " << tp.TP.eta << ", SimHitAveEta = " << tp.CSCSimHitAve.eta << endl;
+        }
+        if (!CanRecoGEM) {
+          cout << "This TP cannot reconstruct GEMDigis, NSimHitsGEM = " << tp.NSimHitsGEM << ", tp eta = " << tp.TP.eta << ", SimHitAveEta = " << tp.GEMSimHitAve.eta << endl;
+        }
+        if (tp.TP.eta > 0) tppos++;
+        else if (tp.TP.eta < 0) tpneg++;
         if (CanRecoCSC) {
+          if (tp.CSCSimHitAve.eta > 0) cancscpos++;
+          else if (tp.CSCSimHitAve.eta < 0) cancscneg++;
           bool DigiInMatch = tp.CSCStubs.size();
           // TH2Plots[1][0][disk][ring]->Fill(CSCSimHitAve_V[3],CSCSimHitAve_V[2]);
           // TH2Plots[2][0][disk][ring]->Fill(CSCSimHitAve_V[1],CSCSimHitAve_V[2]);
@@ -154,7 +197,7 @@ void GEMEff() {
             }
           }
           float ClosedR = 999;
-          float ClosedEta, ClosedPhi;
+          float ClosedEta(999), ClosedPhi(999);
           vector<CSCStub>& DigisToLook = (LookForDigiInMatched ? tp.CSCStubs : ThisStation.CSCStubs);
           for (unsigned idigi = 0; idigi < DigisToLook.size(); ++idigi) {
             CSCStub CSCDigi = DigisToLook[idigi];
@@ -172,6 +215,8 @@ void GEMEff() {
         }
 
         if (CanRecoGEM) {
+          if (tp.CSCSimHitAve.eta > 0) cangempos++;
+          else if (tp.CSCSimHitAve.eta < 0) cangemneg++;
           bool DigiInMatch = tp.GEMDigis.size();
           if (DigiInMatch) {
             for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
@@ -200,7 +245,7 @@ void GEMEff() {
             }
           }
           float ClosedR = 999;
-          float ClosedEta, ClosedPhi;
+          float ClosedEta(999), ClosedPhi(999);
           vector<GEMDigi>& DigisToLook = (LookForDigiInMatched ? tp.GEMDigis : ThisStation.GEMDigis);
           for (unsigned idigi = 0; idigi < DigisToLook.size(); ++idigi) {
             GEMDigi GEMDigi = DigisToLook[idigi];
@@ -243,7 +288,7 @@ void GEMEff() {
             }
           }
           float ClosedR = 999;
-          float ClosedEta, ClosedPhi;
+          float ClosedEta(999), ClosedPhi(999);
           vector<GEMPadDigiCluster>& DigisToLook = (LookForDigiInMatched ? tp.Clusters : ThisStation.Clusters);
           for (unsigned idigi = 0; idigi < DigisToLook.size(); ++idigi) {
             GEMPadDigiCluster cl = DigisToLook[idigi];
@@ -259,32 +304,63 @@ void GEMEff() {
         }
 
         if (CanRecoCSC && CanRecoGEM) {
+          if (tp.CSCSimHitAve.eta > 0) canbothpos++;
+          else if (tp.CSCSimHitAve.eta < 0) canbothneg++;
+          vector<float> CSCSimHitAve_VExt = CSCSimHitAve_V;
+          CSCSimHitAve_VExt.push_back(0);
           for (unsigned icsc = 0; icsc < tp.CSCStubs.size(); ++icsc) {
-            bool hasGEM1 = (tp.CSCStubs[icsc].GEM1.pad != 255);
-            bool hasGEM2 = (tp.CSCStubs[icsc].GEM2.pad != 255);
-            for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
-              CSCGEMEff[disk][ring][iEV][0][0]->Fill((hasGEM1 || hasGEM2), CSCSimHitAve_V[iEV]);
-              CSCGEMEff[disk][ring][iEV][0][1]->Fill((hasGEM1), CSCSimHitAve_V[iEV]);
-              CSCGEMEff[disk][ring][iEV][0][2]->Fill((hasGEM2), CSCSimHitAve_V[iEV]);
-              CSCGEMEff[disk][ring][iEV][0][3]->Fill((hasGEM1 && hasGEM2), CSCSimHitAve_V[iEV]);
+            CSCStub lct = tp.CSCStubs[icsc];
+            bool hasGEM1 = (lct.GEM1pad != 255);
+            bool hasGEM2 = (lct.GEM2pad != 255);
+            CSCSimHitAve_VExt[4] = lct.slope;
+            vector<float> CSCStub_V{lct.eta, lct.phi, lct.r, lct.z, (float) lct.slope};
+            for (unsigned iEV = 0; iEV < CSCGEMEff_V.size(); ++iEV) {
+              CSCGEMEff[disk][ring][iEV][0][0]->Fill((hasGEM1 || hasGEM2), CSCSimHitAve_VExt[iEV]);
+              CSCGEMEff[disk][ring][iEV][0][1]->Fill((hasGEM1), CSCSimHitAve_VExt[iEV]);
+              CSCGEMEff[disk][ring][iEV][0][2]->Fill((hasGEM2), CSCSimHitAve_VExt[iEV]);
+              CSCGEMEff[disk][ring][iEV][0][3]->Fill((hasGEM1 && hasGEM2), CSCSimHitAve_VExt[iEV]);
+              CSCGEMEff[disk][ring][iEV][2][0]->Fill((hasGEM1 || hasGEM2), CSCStub_V[iEV]);
+              CSCGEMEff[disk][ring][iEV][2][1]->Fill((hasGEM1), CSCStub_V[iEV]);
+              CSCGEMEff[disk][ring][iEV][2][2]->Fill((hasGEM2), CSCStub_V[iEV]);
+              CSCGEMEff[disk][ring][iEV][2][3]->Fill((hasGEM1 && hasGEM2), CSCStub_V[iEV]);
+            }
+          }
+        }
+
+        if (CanRecoCSC && CanRecoGEM && tp.CSCStubs.size() && tp.GEMDigis.size()) {
+          for (unsigned icsc = 0; icsc < tp.CSCStubs.size(); ++icsc) {
+            float slope = tp.CSCStubs[icsc].slope;
+            float zsign = (tp.CSCStubs[icsc].z > 0) - (tp.CSCStubs[icsc].z < 0);
+            for (unsigned igem = 0; igem < tp.GEMDigis.size(); ++igem) {
+              float dphi = fabs(tp.GEMDigis[igem].phi - tp.CSCStubs[icsc].phi);
+              while (dphi > 2 * M_PI) dphi -= 2 * M_PI;
+              dPhiVsSlope[disk][ring]->Fill(slope,dphi);
             }
           }
         }
       } // End of tp loop
+
+
       for (unsigned icsc = 0; icsc < ThisStation.CSCStubs.size(); ++icsc) {
         CSCStub lct = ThisStation.CSCStubs[icsc];
-        bool hasGEM1 = (lct.GEM1.pad != 255);
-        bool hasGEM2 = (lct.GEM2.pad != 255);
-        vector<float> CSCSimHitAve_V{lct.eta, lct.phi, lct.r, lct.z};
-        for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
-          CSCGEMEff[disk][ring][iEV][1][0]->Fill((hasGEM1 || hasGEM2), CSCSimHitAve_V[iEV]);
-          CSCGEMEff[disk][ring][iEV][1][1]->Fill((hasGEM1), CSCSimHitAve_V[iEV]);
-          CSCGEMEff[disk][ring][iEV][1][2]->Fill((hasGEM2), CSCSimHitAve_V[iEV]);
-          CSCGEMEff[disk][ring][iEV][1][3]->Fill((hasGEM1 && hasGEM2), CSCSimHitAve_V[iEV]);
+        bool hasGEM1 = (lct.GEM1pad != 255);
+        bool hasGEM2 = (lct.GEM2pad != 255);
+        vector<float> CSCStub_V{lct.eta, lct.phi, lct.r, lct.z, (float)lct.slope};
+        for (unsigned iEV = 0; iEV < CSCGEMEff_V.size(); ++iEV) {
+          CSCGEMEff[disk][ring][iEV][1][0]->Fill((hasGEM1 || hasGEM2), CSCStub_V[iEV]);
+          CSCGEMEff[disk][ring][iEV][1][1]->Fill((hasGEM1), CSCStub_V[iEV]);
+          CSCGEMEff[disk][ring][iEV][1][2]->Fill((hasGEM2), CSCStub_V[iEV]);
+          CSCGEMEff[disk][ring][iEV][1][3]->Fill((hasGEM1 && hasGEM2), CSCStub_V[iEV]);
         }
       }
     } // End of detector loop
   } // End of event loop
+
+  cout << "Can CSC Pos = " << cancscpos << ", Neg = " << cancscneg<< endl;
+  cout << "Can GEM Pos = " << cangempos << ", Neg = " << cangemneg<< endl;
+  cout << "Can Both Pos = " << canbothpos << ", Neg = " << canbothneg<< endl;
+  cout << "TP in +eta : " << tppos << ", TP in -eta : " << tpneg << endl;
+  cout << "Event TP in +eta : " << evttppos << ", TP in -eta : " << evttpneg << endl;
   out->Write();
   out->Save();
   out->Close();
