@@ -27,7 +27,8 @@ struct tp{
   int      pdgid;
   int      eventid; //0 for main event, >0 for PU - only available in specific samples
   int      charge;
-  unsigned Index; //contains the oriignal unculled tp collection index to facilitate linking
+  int      Index; //contains the oriignal unculled tp collection index to facilitate linking
+  vector<TString> DetHit;
 };
 
 struct SimHit{
@@ -35,7 +36,7 @@ struct SimHit{
   float    eta;
   float    r;
   float    z;
-  unsigned MatchTp;
+  int MatchTp;
 };
 
 struct GEMPadDigi{
@@ -100,154 +101,197 @@ struct SimHitAve{
   float z;
 };
 
+// Container for Tracking Particle related information
 class TPContent{
 public:
   // idx = -1 by default
-  TPContent(unsigned idx) {
+  TPContent(int idx) {
     SortedIndex = RawIndex = idx;
     CSCSimHits.clear();
     GEMSimHits.clear();
-    CSCStubs.clear();
-    GEMDigis.clear();
+    MatchCSCStubs.clear();
+    MatchGEMDigis.clear();
   };
   void CalcSimHitAve() {
     float ncsc = NSimHitsCSC = CSCSimHits.size();
     float ngem = NSimHitsGEM = GEMSimHits.size();
     CSCSimHitAve = GEMSimHitAve = SimHitAve{0.,0.,0.,0.};
     for (unsigned i = 0; i < NSimHitsCSC; ++i) {
-      CSCSimHitAve.phi += CSCSimHits[i].phi / ncsc;
-      CSCSimHitAve.eta += CSCSimHits[i].eta / ncsc;
-      CSCSimHitAve.r   += CSCSimHits[i].r / ncsc;
-      CSCSimHitAve.z   += CSCSimHits[i].z / ncsc;
+      CSCSimHitAve.phi += CSCSimHits[i]->phi / ncsc;
+      CSCSimHitAve.eta += CSCSimHits[i]->eta / ncsc;
+      CSCSimHitAve.r   += CSCSimHits[i]->r / ncsc;
+      CSCSimHitAve.z   += CSCSimHits[i]->z / ncsc;
     };
     CSCSimHitAve.phi = TVector2::Phi_mpi_pi(CSCSimHitAve.phi);
     for (unsigned i = 0; i < NSimHitsGEM; ++i) {
-      GEMSimHitAve.phi += GEMSimHits[i].phi / ngem;
-      GEMSimHitAve.eta += GEMSimHits[i].eta / ngem;
-      GEMSimHitAve.r   += GEMSimHits[i].r / ngem;
-      GEMSimHitAve.z   += GEMSimHits[i].z / ngem;
+      GEMSimHitAve.phi += GEMSimHits[i]->phi / ngem;
+      GEMSimHitAve.eta += GEMSimHits[i]->eta / ngem;
+      GEMSimHitAve.r   += GEMSimHits[i]->r / ngem;
+      GEMSimHitAve.z   += GEMSimHits[i]->z / ngem;
     };
     GEMSimHitAve.phi = TVector2::Phi_mpi_pi(GEMSimHitAve.phi);
   }
-  void SetTP(tp tp_) {
-    TP = tp_;
-  }
+  // void SetTP(tp tp_) {
+  //   TP = tp_;
+  // }
 
-  tp               TP;
-  unsigned         RawIndex;
-  unsigned         SortedIndex;
-  unsigned         NSimHitsCSC;
-  unsigned         NSimHitsGEM;
-  SimHitAve        CSCSimHitAve;
-  SimHitAve        GEMSimHitAve;
-  vector<SimHit>   CSCSimHits;
-  vector<SimHit>   GEMSimHits;
-  vector<CSCStub>  CSCStubs;
-  vector<GEMDigi>  GEMDigis;
-  vector<GEMPadDigiCluster> Clusters;
+  tp*               TP;
+  int               RawIndex;
+  int               SortedIndex;
+  int               NSimHitsCSC;
+  int               NSimHitsGEM;
+  SimHitAve         CSCSimHitAve;
+  SimHitAve         GEMSimHitAve;
+  vector<SimHit*>   CSCSimHits;
+  vector<SimHit*>   GEMSimHits;
+  vector<CSCStub*>  MatchCSCStubs;
+  vector<GEMDigi*>  MatchGEMDigis;
+  vector<GEMPadDigiCluster*> MatchGEMPadDigiClusters;
 };
 
+// Container for station information
 class StationData{
 public:
   StationData(TString lable) {
     StationLabel = lable;
     TPInfos.clear();
-    CSCStubs.clear();
-    GEMDigis.clear();
-    GEMPadDigis.clear();
-    Clusters.clear();
+    CSCSimHits.clear();
+    GEMSimHits.clear();
+    MatchCSCStubs.clear();
+    AllCSCStubs.clear();
+    MatchGEMDigis.clear();
+    AllGEMDigis.clear();
+    AllGEMPadDigis.clear();
+    MatchGEMPadDigiClusters.clear();
+    AllGEMPadDigiClusters.clear();
   };
-  void AddCSCSimHit(SimHit& d) {
+  // void AddCSCSimHit(SimHit& d) {
+  //   for (unsigned i = 0; i < TPInfos.size(); ++i) {
+  //     if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].CSCSimHits.push_back(d);
+  //     return;
+  //   }
+  //   TPContent tmp((unsigned)d.MatchTp);
+  //   tmp.CSCSimHits.push_back(d);
+  //   TPInfos.push_back(tmp);
+  // }
+  // void AddGEMSimHit(SimHit& d) {
+  //   for (unsigned i = 0; i < TPInfos.size(); ++i) {
+  //     if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].GEMSimHits.push_back(d);
+  //     return;
+  //   }
+  //   TPContent tmp((unsigned)d.MatchTp);
+  //   tmp.GEMSimHits.push_back(d);
+  //   TPInfos.push_back(tmp);
+  // }
+  // void AddCSCStub(CSCStub& d) {
+  //   if (d.MatchTp == -1) {
+  //     CSCStubs.push_back(d);
+  //     return;
+  //   }
+  //   for (unsigned i = 0; i < TPInfos.size(); ++i) {
+  //     if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].CSCStubs.push_back(d);
+  //     return;
+  //   }
+  //   TPContent tmp((unsigned)d.MatchTp);
+  //   tmp.CSCStubs.push_back(d);
+  //   TPInfos.push_back(tmp);
+  // }
+  // void AddGEMDigi(GEMDigi& d) {
+  //   if (d.MatchTp == -1) {
+  //     GEMDigis.push_back(d);
+  //     return;
+  //   }
+  //   for (unsigned i = 0; i < TPInfos.size(); ++i) {
+  //     if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].GEMDigis.push_back(d);
+  //     return;
+  //   }
+  //   TPContent tmp((unsigned)d.MatchTp);
+  //   tmp.GEMDigis.push_back(d);
+  //   TPInfos.push_back(tmp);
+  // }
+  // void AddGEMPadDigi(GEMPadDigi d) {
+  //   GEMPadDigis.push_back(d);
+  // }
+  // void AddGEMPadDigiCluster(GEMPadDigiCluster& d) {
+  //   if (d.MatchTp == -1) {
+  //     Clusters.push_back(d);
+  //     return;
+  //   }
+  //   for (unsigned i = 0; i < TPInfos.size(); ++i) {
+  //     if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].Clusters.push_back(d);
+  //     return;
+  //   }
+  //   TPContent tmp((unsigned)d.MatchTp);
+  //   tmp.Clusters.push_back(d);
+  //   TPInfos.push_back(tmp);
+  // }
+
+  int FindTP(int ind) {
     for (unsigned i = 0; i < TPInfos.size(); ++i) {
-      if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].CSCSimHits.push_back(d);
-      return;
+      if (ind == TPInfos[i].RawIndex) return i;
     }
-    TPContent tmp((unsigned)d.MatchTp);
-    tmp.CSCSimHits.push_back(d);
-    TPInfos.push_back(tmp);
+    return -1;
   }
-  void AddGEMSimHit(SimHit& d) {
-    for (unsigned i = 0; i < TPInfos.size(); ++i) {
-      if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].GEMSimHits.push_back(d);
-      return;
-    }
-    TPContent tmp((unsigned)d.MatchTp);
-    tmp.GEMSimHits.push_back(d);
-    TPInfos.push_back(tmp);
-  }
-  void AddCSCStub(CSCStub& d) {
-    if (d.MatchTp == -1) {
-      CSCStubs.push_back(d);
-      return;
-    }
-    for (unsigned i = 0; i < TPInfos.size(); ++i) {
-      if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].CSCStubs.push_back(d);
-      return;
-    }
-    TPContent tmp((unsigned)d.MatchTp);
-    tmp.CSCStubs.push_back(d);
-    TPInfos.push_back(tmp);
-  }
-  void AddGEMDigi(GEMDigi& d) {
-    if (d.MatchTp == -1) {
-      GEMDigis.push_back(d);
-      return;
-    }
-    for (unsigned i = 0; i < TPInfos.size(); ++i) {
-      if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].GEMDigis.push_back(d);
-      return;
-    }
-    TPContent tmp((unsigned)d.MatchTp);
-    tmp.GEMDigis.push_back(d);
-    TPInfos.push_back(tmp);
-  }
-  void AddGEMPadDigi(GEMPadDigi d) {
-    GEMPadDigis.push_back(d);
-  }
-  void AddGEMPadDigiCluster(GEMPadDigiCluster& d) {
-    if (d.MatchTp == -1) {
-      Clusters.push_back(d);
-      return;
-    }
-    for (unsigned i = 0; i < TPInfos.size(); ++i) {
-      if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].Clusters.push_back(d);
-      return;
-    }
-    TPContent tmp((unsigned)d.MatchTp);
-    tmp.Clusters.push_back(d);
-    TPInfos.push_back(tmp);
-  }
-  void FillTP(vector<tp>& tps) {
-    for (unsigned i = 0; i < TPInfos.size(); ++i) {
-      bool found = false;
-      for (unsigned j = 0; j < tps.size(); ++j) {
-        if (TPInfos[i].RawIndex == tps[j].Index){
-          TPInfos[i].SetTP(tps[j]);
-          found = true;
-          break;
-        }
+
+  void SortTP() {
+    for (unsigned i = 0; i < CSCSimHits.size(); ++i) {
+      int tpindex = FindTP(CSCSimHits[i]->MatchTp);
+      if (tpindex == -1) {
+        TPContent tmp(CSCSimHits[i]->MatchTp);
+        tmp.CSCSimHits.push_back(CSCSimHits[i]);
+        TPInfos.push_back(tmp);
       }
-      if (!found) cout << "Cannot find a tp with index = " << TPInfos[i].RawIndex <<endl;
-      // if (!found) {
-      //   cout << "List of TP Indices are  ";
-      //   for (unsigned j = 0; j < tps.size(); ++j) {
-      //     cout << ", " << tps[j].Index;
-      //   }
-      //   cout <<endl;
-      // }
+      else TPInfos[tpindex].CSCSimHits.push_back(CSCSimHits[i]);
+    }
+    for (unsigned i = 0; i < GEMSimHits.size(); ++i) {
+      int tpindex = FindTP(GEMSimHits[i]->MatchTp);
+      if (tpindex == -1) {
+        TPContent tmp(GEMSimHits[i]->MatchTp);
+        tmp.GEMSimHits.push_back(GEMSimHits[i]);
+        TPInfos.push_back(tmp);
+      }
+      else TPInfos[tpindex].GEMSimHits.push_back(GEMSimHits[i]);
+    }
+    for (unsigned i = 0; i < MatchCSCStubs.size(); ++i) {
+      int tpindex = FindTP(MatchCSCStubs[i]->MatchTp);
+      if (tpindex == -1) {
+        TPContent tmp(MatchCSCStubs[i]->MatchTp);
+        tmp.MatchCSCStubs.push_back(MatchCSCStubs[i]);
+        TPInfos.push_back(tmp);
+      }
+      else TPInfos[tpindex].MatchCSCStubs.push_back(MatchCSCStubs[i]);
+    }
+    for (unsigned i = 0; i < MatchGEMDigis.size(); ++i) {
+      int tpindex = FindTP(MatchGEMDigis[i]->MatchTp);
+      if (tpindex == -1) {
+        TPContent tmp(MatchGEMDigis[i]->MatchTp);
+        tmp.MatchGEMDigis.push_back(MatchGEMDigis[i]);
+        TPInfos.push_back(tmp);
+      }
+      else TPInfos[tpindex].MatchGEMDigis.push_back(MatchGEMDigis[i]);
+    }
+    for (unsigned i = 0; i < MatchGEMPadDigiClusters.size(); ++i) {
+      int tpindex = FindTP(MatchGEMPadDigiClusters[i]->MatchTp);
+      if (tpindex == -1) {
+        TPContent tmp(MatchGEMPadDigiClusters[i]->MatchTp);
+        tmp.MatchGEMPadDigiClusters.push_back(MatchGEMPadDigiClusters[i]);
+        TPInfos.push_back(tmp);
+      }
+      else TPInfos[tpindex].MatchGEMPadDigiClusters.push_back(MatchGEMPadDigiClusters[i]);
     }
   }
-  void CalcSimHitAve() {
-    for (unsigned i = 0; i < TPInfos.size(); ++i) {
-      TPInfos[i].CalcSimHitAve();
-    }
-  }
+
   TString            StationLabel;
   vector<TPContent>  TPInfos;
-  vector<CSCStub>    CSCStubs;
-  vector<GEMDigi>    GEMDigis;
-  vector<GEMPadDigi> GEMPadDigis;
-  vector<GEMPadDigiCluster> Clusters;
+  vector<SimHit*>     CSCSimHits;
+  vector<SimHit*>     GEMSimHits;
+  vector<CSCStub*>    MatchCSCStubs;
+  vector<CSCStub*>      AllCSCStubs;
+  vector<GEMDigi*>    MatchGEMDigis;
+  vector<GEMDigi*>      AllGEMDigis;
+  vector<GEMPadDigi*> AllGEMPadDigis;
+  vector<GEMPadDigiCluster*> MatchGEMPadDigiClusters;
+  vector<GEMPadDigiCluster*>   AllGEMPadDigiClusters;
 };
 
 class EventData{
@@ -261,7 +305,7 @@ public:
         StationData("1-1"),
         StationData("1-2"),
         StationData("1-3"),
-        StationData("1-4")
+        StationData("1-0")
       },
       {
         StationData("2-1"),
@@ -277,409 +321,172 @@ public:
       }
     };
     MuonTPs.clear();
+    CSCSimHits.clear();
+    GEMSimHits.clear();
+    MatchCSCStubs.clear();
+    AllCSCStubs.clear();
+    MatchGEMDigis.clear();
+    AllGEMDigis.clear();
+    AllGEMPadDigis.clear();
+    MatchGEMPadDigiClusters.clear();
+    AllGEMPadDigiClusters.clear();
+    I_MuonTPs.clear();
+    I_CSCSimHits.clear();
+    I_GEMSimHits.clear();
+    I_MatchCSCStubs.clear();
+    I_AllCSCStubs.clear();
+    I_MatchGEMDigis.clear();
+    I_AllGEMDigis.clear();
+    I_AllGEMPadDigis.clear();
+    I_MatchGEMPadDigiClusters.clear();
+    I_AllGEMPadDigiClusters.clear();
   }
-  StationData& Station(pair<unsigned,unsigned> DaR){
-    return Stations[DaR.first][DaR.second];
+  // StationData& Station(pair<unsigned,unsigned> DaR){
+  //   return Stations[DaR.first][DaR.second];
+  // }
+  // void AddTP(tp& muontp) {
+  //   MuonTPs.push_back(muontp);
+  // }
+  // void AddCSCSimHit(SimHit& d) {
+  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+  //   Stations[DaR.first][DaR.second].AddCSCSimHit(d);
+  // }
+  // void AddGEMSimHit(SimHit& d) {
+  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+  //   Stations[DaR.first][DaR.second].AddGEMSimHit(d);
+  // }
+  // void AddCSCStub(CSCStub& d) {
+  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+  //   Stations[DaR.first][DaR.second].AddCSCStub(d);
+  // }
+  // void AddGEMDigi(GEMDigi& d) {
+  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+  //   Stations[DaR.first][DaR.second].AddGEMDigi(d);
+  // }
+  // void AddGEMPadDigi(GEMPadDigi d) {
+  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+  //   Stations[DaR.first][DaR.second].AddGEMPadDigi(d);
+  // }
+  // void AddGEMPadDigiCluster(GEMPadDigiCluster& d) {
+  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
+  //   Stations[DaR.first][DaR.second].AddGEMPadDigiCluster(d);
+  // }
+  void SortByStation() {
+    for (unsigned i = 0; i < I_MuonTPs.size(); ++i) {
+      tp* p = &(I_MuonTPs[i]);
+      MuonTPs.push_back(p);
+    }
+    for (unsigned i = 0; i < I_CSCSimHits.size(); ++i) {
+      SimHit* p = &(I_CSCSimHits[i]);
+      CSCSimHits.push_back(p);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      Stations[DaR.first][DaR.second].CSCSimHits.push_back(p);
+    }
+    for (unsigned i = 0; i < I_GEMSimHits.size(); ++i) {
+      SimHit* p = &(I_GEMSimHits[i]);
+      GEMSimHits.push_back(p);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      Stations[DaR.first][DaR.second].GEMSimHits.push_back(p);
+    }
+    for (unsigned i = 0; i < I_MatchCSCStubs.size(); ++i) {
+      CSCStub* p = &(I_MatchCSCStubs[i]);
+      MatchCSCStubs.push_back(p);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      Stations[DaR.first][DaR.second].MatchCSCStubs.push_back(p);
+    }
+    for (unsigned i = 0; i < I_AllCSCStubs.size(); ++i) {
+      CSCStub* p = &(I_AllCSCStubs[i]);
+      AllCSCStubs.push_back(p);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      Stations[DaR.first][DaR.second].AllCSCStubs.push_back(p);
+    }
+    for (unsigned i = 0; i < I_MatchGEMDigis.size(); ++i) {
+      GEMDigi* p = &(I_MatchGEMDigis[i]);
+      MatchGEMDigis.push_back(p);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      Stations[DaR.first][DaR.second].MatchGEMDigis.push_back(p);
+    }
+    for (unsigned i = 0; i < I_AllGEMDigis.size(); ++i) {
+      GEMDigi* p = &(I_AllGEMDigis[i]);
+      AllGEMDigis.push_back(p);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      Stations[DaR.first][DaR.second].AllGEMDigis.push_back(p);
+    }
+    for (unsigned i = 0; i < I_AllGEMPadDigis.size(); ++i) {
+      GEMPadDigi* p = &(I_AllGEMPadDigis[i]);
+      AllGEMPadDigis.push_back(p);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      Stations[DaR.first][DaR.second].AllGEMPadDigis.push_back(p);
+    }
+    for (unsigned i = 0; i < I_MatchGEMPadDigiClusters.size(); ++i) {
+      GEMPadDigiCluster* p = &(I_MatchGEMPadDigiClusters[i]);
+      MatchGEMPadDigiClusters.push_back(p);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      Stations[DaR.first][DaR.second].MatchGEMPadDigiClusters.push_back(p);
+    }
+    for (unsigned i = 0; i < I_AllGEMPadDigiClusters.size(); ++i) {
+      GEMPadDigiCluster* p = &(I_AllGEMPadDigiClusters[i]);
+      AllGEMPadDigiClusters.push_back(p);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      Stations[DaR.first][DaR.second].AllGEMPadDigiClusters.push_back(p);
+    }
   }
-  void AddTP(tp& muontp) {
-    MuonTPs.push_back(muontp);
-  }
-  void AddCSCSimHit(SimHit& d) {
-    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-    Stations[DaR.first][DaR.second].AddCSCSimHit(d);
-  }
-  void AddGEMSimHit(SimHit& d) {
-    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-    Stations[DaR.first][DaR.second].AddGEMSimHit(d);
-  }
-  void AddCSCStub(CSCStub& d) {
-    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-    Stations[DaR.first][DaR.second].AddCSCStub(d);
-  }
-  void AddGEMDigi(GEMDigi& d) {
-    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-    Stations[DaR.first][DaR.second].AddGEMDigi(d);
-  }
-  void AddGEMPadDigi(GEMPadDigi d) {
-    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-    Stations[DaR.first][DaR.second].AddGEMPadDigi(d);
-  }
-  void AddGEMPadDigiCluster(GEMPadDigiCluster& d) {
-    pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-    Stations[DaR.first][DaR.second].AddGEMPadDigiCluster(d);
-  }
-  void FillTP() {
+  void SortTP() {
     for (unsigned i = 0; i < Stations.size(); ++i) for(unsigned j = 0; j < Stations[i].size(); ++j) {
-      Stations[i][j].FillTP(MuonTPs);
+      Stations[i][j].SortTP();
+      for (unsigned k = 0; k < Stations[i][j].TPInfos.size(); ++k) {
+        bool found = false;
+        for (unsigned l = 0; l < MuonTPs.size(); ++l) {
+          if (Stations[i][j].TPInfos[k].RawIndex == I_MuonTPs[l].Index) {
+            I_MuonTPs[l].DetHit.push_back(Stations[i][j].StationLabel);
+            Stations[i][j].TPInfos[k].TP = MuonTPs[l];
+            found = true;
+            break;
+          }
+        }
+        if (!found) cout << "Cannot find a tp with index = " << Stations[i][j].TPInfos[k].RawIndex <<endl;
+      }
     }
   }
   void CalcSimHitAve() {
     for (unsigned i = 0; i < Stations.size(); ++i) for(unsigned j = 0; j < Stations[i].size(); ++j) {
-      Stations[i][j].CalcSimHitAve();
+      for (unsigned k = 0; k < Stations[i][j].TPInfos.size(); ++k) {
+        Stations[i][j].TPInfos[k].CalcSimHitAve();
+      }
     }
+  }
+  void Run() {
+    SortByStation();
+    SortTP();
+    CalcSimHitAve();
   }
 
   vector<vector<StationData> > Stations;
-  vector<tp> MuonTPs;
+  vector<tp> I_MuonTPs;
+  vector<SimHit> I_CSCSimHits;
+  vector<SimHit> I_GEMSimHits;
+  vector<CSCStub> I_MatchCSCStubs;
+  vector<CSCStub>   I_AllCSCStubs;
+  vector<GEMDigi> I_MatchGEMDigis;
+  vector<GEMDigi>   I_AllGEMDigis;
+  vector<GEMPadDigi>   I_AllGEMPadDigis;
+  vector<GEMPadDigiCluster> I_MatchGEMPadDigiClusters;
+  vector<GEMPadDigiCluster>   I_AllGEMPadDigiClusters;
+  // Make pointers to the instances, so that they are in consistent format with Station and TPContent
+  vector<tp*> MuonTPs;
+  vector<SimHit*> CSCSimHits;
+  vector<SimHit*> GEMSimHits;
+  vector<CSCStub*> MatchCSCStubs;
+  vector<CSCStub*>   AllCSCStubs;
+  vector<GEMDigi*> MatchGEMDigis;
+  vector<GEMDigi*>   AllGEMDigis;
+  vector<GEMPadDigi*>   AllGEMPadDigis;
+  vector<GEMPadDigiCluster*> MatchGEMPadDigiClusters;
+  vector<GEMPadDigiCluster*>   AllGEMPadDigiClusters;
+
+  // vector<GEMPadDigi> MatchGEMPadDigis; // This collection is integrated into LCT collections
 };
 
-//container for tp-based information
-struct TPmaster{
-  unsigned tpIndex;
-  vector<vector<bool> > InStation;//default pattern is [disk][ring] for addressing subdetectors; GEM and CSC stations are considered a single entity
-};
 
-class Branch_Reader{
-public:
-  Branch_Reader() {
-
-  };
-
-  void Init(TChain* evttree, TString name_, int data_type_, bool match_ = false) {
-    name = name_;
-    data_type = data_type_; // 0 for LCT, 1 for ALCT, 2 for CLCT, 3 for GemDigi
-    IsMatched = match_;
-
-    // LCT
-    if (data_type == 0) {
-      InitGP(evttree);
-      bend = new std::vector<int>;
-      pattern = new std::vector<int>;
-      slope = new std::vector<int>;
-      quality = new std::vector<int>;
-      detId = new std::vector<int>;
-      keywire = new std::vector<int>;
-      strip = new std::vector<int>;
-      strip8 = new std::vector<int>;
-      valid = new std::vector<bool>;
-      type = new std::vector<int>;
-      GEM1pad = new std::vector<int>;
-      GEM1part = new std::vector<int>;
-      GEM2pad = new std::vector<int>;
-      GEM2part = new std::vector<int>;
-      evttree->SetBranchAddress(name+"_bend", &bend);
-      evttree->SetBranchAddress(name+"_pattern", &pattern);
-      evttree->SetBranchAddress(name+"_slope", &slope);
-      evttree->SetBranchAddress(name+"_quality", &quality);
-      evttree->SetBranchAddress(name+"_detId", &detId);
-      evttree->SetBranchAddress(name+"_keywire", &keywire);
-      evttree->SetBranchAddress(name+"_strip", &strip);
-      evttree->SetBranchAddress(name+"_strip8", &strip8);
-      evttree->SetBranchAddress(name+"_valid", &valid);
-      evttree->SetBranchAddress(name+"_type", &type);
-      evttree->SetBranchAddress(name+"_GEM1pad", &GEM1pad);
-      evttree->SetBranchAddress(name+"_GEM1part", &GEM1part);
-      evttree->SetBranchAddress(name+"_GEM2pad", &GEM2pad);
-      evttree->SetBranchAddress(name+"_GEM2part", &GEM2part);
-      if (IsMatched) {
-        matchTp = new std::vector<int>;
-        evttree->SetBranchAddress(name+"_matchTp", &matchTp);
-      }
-    }
-
-    // ALCT
-    else if (data_type == 1) {
-      detId = new std::vector<int>;
-      keywire = new std::vector<int>;
-      hit = new std::vector<int>;
-      position = new std::vector<int>;
-      valid = new std::vector<bool>;
-      evttree->SetBranchAddress(name+"_detId", &detId);
-      evttree->SetBranchAddress(name+"_keywire", &keywire);
-      evttree->SetBranchAddress(name+"_hit", &hit);
-      evttree->SetBranchAddress(name+"_position", &position);
-      evttree->SetBranchAddress(name+"_valid", &valid);
-    }
-
-    //CLCT
-    else if (data_type == 2) {
-      detId = new std::vector<int>;
-      strip = new std::vector<int>;
-      strip8 = new std::vector<int>;
-      hit = new std::vector<int>;
-      position = new std::vector<int>;
-      valid = new std::vector<bool>;
-      bend = new std::vector<int>;
-      pattern = new std::vector<int>;
-      slope = new std::vector<int>;
-      evttree->SetBranchAddress(name+"_detId", &detId);
-      evttree->SetBranchAddress(name+"_strip", &strip);
-      evttree->SetBranchAddress(name+"_strip8", &strip8);
-      evttree->SetBranchAddress(name+"_hit", &hit);
-      evttree->SetBranchAddress(name+"_position", &position);
-      evttree->SetBranchAddress(name+"_valid", &valid);
-      evttree->SetBranchAddress(name+"_bend", &bend);
-      evttree->SetBranchAddress(name+"_pattern", &pattern);
-      evttree->SetBranchAddress(name+"_slope", &slope);
-    }
-
-    // GEM
-    else if (data_type == 3) {
-      InitGP(evttree);
-      detId = new std::vector<int>;
-      strip = new std::vector<int>;
-      evttree->SetBranchAddress(name+"_detId", &detId);
-      evttree->SetBranchAddress(name+"_strip", &strip);
-      if (IsMatched) {
-        matchTp = new std::vector<int>;
-        evttree->SetBranchAddress(name+"_matchTp", &matchTp);
-      }
-    }
-
-    // GEMPad
-    else if (data_type == 4) {
-      InitGP(evttree);
-      detId = new std::vector<int>;
-      pad = new std::vector<int>;
-      part = new std::vector<int>;
-      evttree->SetBranchAddress(name+"_detId", &detId);
-      evttree->SetBranchAddress(name+"_pad", &pad);
-      evttree->SetBranchAddress(name+"_part", &part);
-      if (IsMatched) {
-        matchCSC = new std::vector<int>;
-        evttree->SetBranchAddress(name+"_matchCSC", &matchCSC);
-      }
-    }
-
-    //SimHit
-    else if (data_type == 5) {
-      if (!IsMatched) cout << name << " not matched? SimHits are always matched!" << endl;
-      InitGP(evttree);
-      station = new std::vector<int>;
-      matchTp = new std::vector<int>;
-      evttree->SetBranchAddress(name+"_station", &station);
-      evttree->SetBranchAddress(name+"_matchTp", &matchTp);
-    }
-
-    // TP
-    else if (data_type == 6) {
-      if (IsMatched) cout << name << " Matched? TP can't match to anything" << endl;
-      pt           = new std::vector<float>;
-      eta          = new std::vector<float>;
-      phi          = new std::vector<float>;
-      dxy          = new std::vector<float>;
-      d0           = new std::vector<float>;
-      z0           = new std::vector<float>;
-      d0_prod      = new std::vector<float>;
-      z0_prod      = new std::vector<float>;
-      pdgid        = new std::vector<int>;
-      nmatch       = new std::vector<int>;
-      nloosematch  = new std::vector<int>;
-      nstub        = new std::vector<int>;
-      eventid      = new std::vector<int>;
-      charge       = new std::vector<int>;
-      evttree->SetBranchAddress(name+"_pt",          &pt);
-      evttree->SetBranchAddress(name+"_eta",         &eta);
-      evttree->SetBranchAddress(name+"_phi",         &phi);
-      evttree->SetBranchAddress(name+"_dxy",         &dxy);
-      evttree->SetBranchAddress(name+"_d0",          &d0);
-      evttree->SetBranchAddress(name+"_z0",          &z0);
-      evttree->SetBranchAddress(name+"_d0_prod",     &d0_prod);
-      evttree->SetBranchAddress(name+"_z0_prod",     &z0_prod);
-      evttree->SetBranchAddress(name+"_pdgid",       &pdgid);
-      evttree->SetBranchAddress(name+"_nmatch",      &nmatch);
-      evttree->SetBranchAddress(name+"_nloosematch", &nloosematch);
-      evttree->SetBranchAddress(name+"_nstub",       &nstub);
-      evttree->SetBranchAddress(name+"_eventid",     &eventid);
-      evttree->SetBranchAddress(name+"_charge",      &charge);
-    }
-
-    // GEMPadDigiCluster
-    else if (data_type == 7) {
-      InitGP(evttree);
-      detId = new std::vector<int>;
-      pads = new std::vector<int>;
-      part = new std::vector<int>;
-      len = new std::vector<int>;
-      evttree->SetBranchAddress(name+"_detId", &detId);
-      evttree->SetBranchAddress(name+"_pads", &pads);
-      evttree->SetBranchAddress(name+"_part", &part);
-      evttree->SetBranchAddress(name+"_len",&len);
-      if (IsMatched) {
-        matchTp = new std::vector<int>;
-        evttree->SetBranchAddress(name+"_matchTp", &matchTp);
-      }
-    }
-  }
-
-  void Init(TChain* evttree, TString name_, TString data_type_st, bool match_ = false) {
-    int data_type_ = -1;
-    if      (data_type_st == "LCT") data_type_ = 0;
-    else if (data_type_st == "ALCT") data_type_ = 1;
-    else if (data_type_st == "CLCT") data_type_ = 2;
-    else if (data_type_st == "GEM") data_type_ = 3;
-    else if (data_type_st == "GEMPad") data_type_ = 4;
-    else if (data_type_st == "SimHit") data_type_ = 5;
-    else if (data_type_st == "TP") data_type_ = 6;
-    else if (data_type_st == "GEMPadDigiCluster") data_type_ = 7;
-    // else if (data_type_st == "MatchMuon") data_type_ = 8;
-
-
-    if (data_type_ == -1) cout << "Wrong Data Type input for " << name_ << " as " << data_type_st << endl;
-    else Init(evttree, name_, data_type_, match_);
-  }
-
-  void Reset() {
-    if (data_type == 0) {
-      ResetGP();
-      bend->clear();
-      pattern->clear();
-      slope->clear();
-      quality->clear();
-      detId->clear();
-      keywire->clear();
-      strip->clear();
-      strip8->clear();
-      valid->clear();
-      type->clear();
-      GEM1pad->clear();
-      GEM1part->clear();
-      GEM2pad->clear();
-      GEM2part->clear();
-      if (IsMatched) {
-        matchTp->clear();
-      }
-    }
-    else if (data_type == 1) {
-      detId->clear();
-      keywire->clear();
-      hit->clear();
-      position->clear();
-      valid->clear();
-    }
-    else if (data_type == 2) {
-      detId->clear();
-      strip->clear();
-      strip8->clear();
-      hit->clear();
-      position->clear();
-      valid->clear();
-      bend->clear();
-      pattern->clear();
-      slope->clear();
-    }
-    else if (data_type == 3) {
-      ResetGP();
-      detId->clear();
-      strip->clear();
-      if (IsMatched) {
-        matchTp->clear();
-      }
-    }
-    else if (data_type == 4) {
-      ResetGP();
-      detId->clear();
-      pad->clear();
-      part->clear();
-      if (IsMatched) {
-        matchCSC->clear();
-      }
-    }
-    else if (data_type == 5) {
-      ResetGP();
-      station->clear();
-      matchTp->clear();
-    }
-    else if (data_type == 6) {
-      pt->clear();
-      eta->clear();
-      phi->clear();
-      dxy->clear();
-      d0->clear();
-      z0->clear();
-      d0_prod->clear();
-      z0_prod->clear();
-      pdgid->clear();
-      nmatch->clear();
-      nloosematch->clear();
-      nstub->clear();
-      eventid->clear();
-      charge->clear();
-    }
-    else if (data_type == 7) {
-      ResetGP();
-      detId->clear();
-      pads->clear();
-      part->clear();
-      len->clear();
-      if (IsMatched) {
-        matchTp->clear();
-      }
-    }
-  }
-
-  void ResetGP() {
-    eta->clear();
-    phi->clear();
-    z->clear();
-    r->clear();
-  }
-
-  void InitGP(TChain* evttree) {
-    phi = new std::vector<float>;
-    eta = new std::vector<float>;
-    z = new std::vector<float>;
-    r = new std::vector<float>;
-    evttree->SetBranchAddress(name+"_phi", &phi);
-    evttree->SetBranchAddress(name+"_eta", &eta);
-    evttree->SetBranchAddress(name+"_z", &z);
-    evttree->SetBranchAddress(name+"_r", &r);
-  }
-
-  std::vector<int>*   detId;
-  std::vector<int>*   matchTp;
-  std::vector<int>*   matchCSC;
-
-  //Matrix extraction
-  std::vector<int>*   hit;
-  std::vector<int>*   position;
-
-  // GP
-  std::vector<float>* phi;
-  std::vector<float>* eta;
-  std::vector<float>* z;
-  std::vector<float>* r;
-
-  //Digi
-  std::vector<int>*   bend;
-  std::vector<int>*   pattern;
-  std::vector<int>*   slope;
-  std::vector<int>*   quality;
-  std::vector<int>*   keywire;
-  std::vector<int>*   strip;
-  std::vector<int>*   strip8;
-  std::vector<bool>*  valid;
-  std::vector<int>*   type;
-  std::vector<int>*   GEM1pad;
-  std::vector<int>*   GEM1part;
-  std::vector<int>*   GEM2pad;
-  std::vector<int>*   GEM2part;
-  std::vector<int>*   part;
-  std::vector<int>*   pad;
-  std::vector<int>*   pads;
-  std::vector<int>*   len;
-
-  //SimHit
-  std::vector<int>* station;
-
-  //TP
-  std::vector<float>* pt;
-  std::vector<float>* dxy;
-  std::vector<float>* d0;
-  std::vector<float>* z0;
-  std::vector<float>* d0_prod;
-  std::vector<float>* z0_prod;
-  std::vector<int>* pdgid;
-  std::vector<int>* nmatch;
-  std::vector<int>* nloosematch;
-  std::vector<int>* nstub;
-  std::vector<int>* eventid;
-  std::vector<int>* charge;
-
-private:
-  TString name;
-  int data_type;
-  bool IsMatched;
-};
 
 #endif

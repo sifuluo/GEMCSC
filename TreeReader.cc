@@ -2,6 +2,7 @@
 #define TREEREADER_CC
 
 #include "TreeDataFormat.cc"
+#include "BranchReader.cc"
 #include "Tools.cc"
 
 #include "TROOT.h"
@@ -70,7 +71,8 @@ public:
       tmp.eventid = br_tp.eventid->at(i);
       tmp.charge  = br_tp.charge->at(i);
       tmp.Index   = i;
-      Evt.AddTP(tmp);
+      // Evt.AddTP(tmp);
+      Evt.I_MuonTPs.push_back(tmp);
     };
     // cout << "MuonTPs size = " << Evt.MuonTPs.size() <<endl;
     if (DebugMode) {
@@ -89,7 +91,8 @@ public:
       tmp.r       = br_gemSimHit.r->at(i);
       tmp.z       = br_gemSimHit.z->at(i);
       tmp.MatchTp = (unsigned)br_gemSimHit.matchTp->at(i);
-      Evt.AddGEMSimHit(tmp);
+      // Evt.AddGEMSimHit(tmp);
+      Evt.I_GEMSimHits.push_back(tmp);
     };
     if (DebugMode) cout << "Finished GEMSimHits, Starting CSCSimHits" <<endl;
 
@@ -103,7 +106,8 @@ public:
       tmp.r       = br_cscSimHit.r->at(i);
       tmp.z       = br_cscSimHit.z->at(i);
       tmp.MatchTp = (unsigned)br_cscSimHit.matchTp->at(i);
-      Evt.AddCSCSimHit(tmp);
+      // Evt.AddCSCSimHit(tmp);
+      Evt.I_CSCSimHits.push_back(tmp);
     };
     if (DebugMode) cout << "Finished CSCSimHits, Starting CSCStubs" <<endl;
 
@@ -182,7 +186,8 @@ public:
         // tmp.GEM2.r   = 0.;
         // tmp.GEM2.z   = 0.;
       }
-      Evt.AddCSCStub(tmp);
+      // Evt.AddCSCStub(tmp);
+      Evt.I_AllCSCStubs.push_back(tmp);
     };
     if (DebugMode) cout << "Finished CSCStubs, Starting matchCSCStubs" <<endl;
 
@@ -262,8 +267,8 @@ public:
         // tmp.GEM2.r   = 0.;
         // tmp.GEM2.z   = 0.;
       }
-
-      Evt.AddCSCStub(tmp);
+      // Evt.AddCSCStub(tmp);
+      Evt.I_MatchCSCStubs.push_back(tmp);
     };
     if (DebugMode) cout << "Finished matchCSCStubs, Starting GEMDigis" <<endl;
 
@@ -277,7 +282,8 @@ public:
       tmp.z       = br_allGemDigi.z->at(i);
       tmp.MatchTp = -1;
       tmp.layer   = GEMlayerIndex(br_allGemDigi.z->at(i));
-      Evt.AddGEMDigi(tmp);
+      // Evt.AddGEMDigi(tmp);
+      Evt.I_AllGEMDigis.push_back(tmp);
     };
     if (DebugMode) cout << "Finished GEMDigis, Starting matchGEMDigis" <<endl;
 
@@ -292,7 +298,8 @@ public:
       tmp.z       = br_matchGemDigi.z->at(i);
       tmp.MatchTp = br_matchGemDigi.matchTp->at(i);
       tmp.layer   = GEMlayerIndex(br_matchGemDigi.z->at(i));
-      Evt.AddGEMDigi(tmp);
+      // Evt.AddGEMDigi(tmp);
+      Evt.I_MatchGEMDigis.push_back(tmp);
     };
     if (DebugMode) cout << "Finished matchGEMDigis, Starting GEMPadDigis" <<endl;
 
@@ -307,7 +314,8 @@ public:
       tmp.part= br_gemPadDigi.part->at(i);
       tmp.pad = br_gemPadDigi.pad->at(i);
       // cout << "z = " << tmp.z << ", r = " << tmp.r <<endl;
-      Evt.AddGEMPadDigi(tmp);
+      // Evt.AddGEMPadDigi(tmp);
+      Evt.I_AllGEMPadDigis.push_back(tmp);
     };
     if (DebugMode) cout << "Finished GEMPadDigis, Starting AllGEMPadDigiClusters" <<endl;
 
@@ -329,7 +337,8 @@ public:
         tmp.pads.push_back(br_allGemPadDigiCluster.pads->at(allGemPadDigiClusterPadIndex));
         allGemPadDigiClusterPadIndex++;
       }
-      Evt.AddGEMPadDigiCluster(tmp);
+      // Evt.AddGEMPadDigiCluster(tmp);
+      Evt.I_AllGEMPadDigiClusters.push_back(tmp);
     }
     if (DebugMode) cout << "Finished AllGEMPadDigiClusters, Starting MatchGEMPadDigiClusters" <<endl;
 
@@ -353,23 +362,25 @@ public:
         tmp.pads.push_back(br_matchGemPadDigiCluster.pads->at(matchGemPadDigiClusterPadIndex));
         matchGemPadDigiClusterPadIndex++;
       }
-      Evt.AddGEMPadDigiCluster(tmp);
+      // Evt.AddGEMPadDigiCluster(tmp);
+      Evt.I_MatchGEMPadDigiClusters.push_back(tmp);
     }
     if (DebugMode) cout << "Finished MatchGEMPadDigiClusters, Starting TPCalc" <<endl;
-
-    Evt.FillTP();
-    Evt.CalcSimHitAve();
+    Evt.Run();
+    // Evt.SortByStation();
+    // Evt.FillTP();
+    // Evt.CalcSimHitAve();
     if (DebugMode) cout << "Finished Reading" <<endl;
   }
 
   EventData Evt;
 
-  Branch_Reader br_tp, br_cscSimHit, br_gemSimHit;
-  Branch_Reader br_allCscStubsLCT, br_allCscStubsALCT, br_allCscStubsCLCT;
-  Branch_Reader br_allALCT, br_allCLCT, br_allGemDigi;
-  Branch_Reader br_matchCscStubsLCT, br_matchCscStubsALCT, br_matchCscStubsCLCT, br_matchGemDigi;
-  Branch_Reader br_allCscGEM1, br_allCscGEM2, br_matchCscGEM1, br_matchCscGEM2, br_gemPadDigi;
-  Branch_Reader br_matchGemPadDigiCluster, br_allGemPadDigiCluster;
+  BranchReader br_tp, br_cscSimHit, br_gemSimHit;
+  BranchReader br_allCscStubsLCT, br_allCscStubsALCT, br_allCscStubsCLCT;
+  BranchReader br_allALCT, br_allCLCT, br_allGemDigi;
+  BranchReader br_matchCscStubsLCT, br_matchCscStubsALCT, br_matchCscStubsCLCT, br_matchGemDigi;
+  BranchReader br_allCscGEM1, br_allCscGEM2, br_matchCscGEM1, br_matchCscGEM2, br_gemPadDigi;
+  BranchReader br_matchGemPadDigiCluster, br_allGemPadDigiCluster;
 
   bool DebugMode;
 

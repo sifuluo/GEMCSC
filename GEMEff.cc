@@ -138,9 +138,9 @@ void GEMEff() {
     tree->GetEntry(jentry);
     // cout << "Finished Loading event" <<endl;
     tr->ReadTree();
-    vector<tp>& tps = tr->Evt.MuonTPs;
-    for (tp thistp : tps) {
-      if (thistp.eta > 0) evttppos++;
+    vector<tp*>& tps = tr->Evt.MuonTPs;
+    for (tp* thistp : tps) {
+      if (thistp->eta > 0) evttppos++;
       else evttpneg++;
     }
     // cout << "READ" <<endl;
@@ -151,23 +151,23 @@ void GEMEff() {
       if (ring >= LRings.size()) continue;
       StationData& ThisStation = Stations[disk][ring];
       for (unsigned ittp = 0; ittp < ThisStation.TPInfos.size(); ++ittp) {
-        TPContent& tp = ThisStation.TPInfos[ittp];
-        const vector<float> CSCSimHitAve_V{tp.CSCSimHitAve.eta, tp.CSCSimHitAve.phi, tp.CSCSimHitAve.r, tp.CSCSimHitAve.z};
-        const vector<float> GEMSimHitAve_V{tp.GEMSimHitAve.eta, tp.GEMSimHitAve.phi, tp.GEMSimHitAve.r, tp.GEMSimHitAve.z};
-        bool CanRecoCSC = (tp.NSimHitsCSC > 3);
-        bool CanRecoGEM = (tp.NSimHitsGEM > 0);
+        TPContent& ThisTP = ThisStation.TPInfos[ittp];
+        const vector<float> CSCSimHitAve_V{ThisTP.CSCSimHitAve.eta, ThisTP.CSCSimHitAve.phi, ThisTP.CSCSimHitAve.r, ThisTP.CSCSimHitAve.z};
+        const vector<float> GEMSimHitAve_V{ThisTP.GEMSimHitAve.eta, ThisTP.GEMSimHitAve.phi, ThisTP.GEMSimHitAve.r, ThisTP.GEMSimHitAve.z};
+        bool CanRecoCSC = (ThisTP.NSimHitsCSC > 3);
+        bool CanRecoGEM = (ThisTP.NSimHitsGEM > 0);
         if (!CanRecoCSC) {
-          cout << "This TP cannot reconstruct CSCStubs, NSimHitsCSC = " << tp.NSimHitsCSC << ", tp eta = " << tp.TP.eta << ", SimHitAveEta = " << tp.CSCSimHitAve.eta << endl;
+          cout << "This TP cannot reconstruct CSCStubs, NSimHitsCSC = " << ThisTP.NSimHitsCSC << ", ThisTP eta = " << ThisTP.TP->eta << ", SimHitAveEta = " << ThisTP.CSCSimHitAve.eta << endl;
         }
         if (!CanRecoGEM) {
-          cout << "This TP cannot reconstruct GEMDigis, NSimHitsGEM = " << tp.NSimHitsGEM << ", tp eta = " << tp.TP.eta << ", SimHitAveEta = " << tp.GEMSimHitAve.eta << endl;
+          cout << "This TP cannot reconstruct GEMDigis, NSimHitsGEM = " << ThisTP.NSimHitsGEM << ", ThisTP eta = " << ThisTP.TP->eta << ", SimHitAveEta = " << ThisTP.GEMSimHitAve.eta << endl;
         }
-        if (tp.TP.eta > 0) tppos++;
-        else if (tp.TP.eta < 0) tpneg++;
+        if (ThisTP.TP->eta > 0) tppos++;
+        else if (ThisTP.TP->eta < 0) tpneg++;
         if (CanRecoCSC) {
-          if (tp.CSCSimHitAve.eta > 0) cancscpos++;
-          else if (tp.CSCSimHitAve.eta < 0) cancscneg++;
-          bool DigiInMatch = tp.CSCStubs.size();
+          if (ThisTP.CSCSimHitAve.eta > 0) cancscpos++;
+          else if (ThisTP.CSCSimHitAve.eta < 0) cancscneg++;
+          bool DigiInMatch = ThisTP.MatchCSCStubs.size();
           // TH2Plots[1][0][disk][ring]->Fill(CSCSimHitAve_V[3],CSCSimHitAve_V[2]);
           // TH2Plots[2][0][disk][ring]->Fill(CSCSimHitAve_V[1],CSCSimHitAve_V[2]);
           if (DigiInMatch) {
@@ -178,9 +178,9 @@ void GEMEff() {
           }
           else {
             bool DigiInGeneric = false;
-            for (unsigned idigi = 0; idigi < ThisStation.CSCStubs.size(); ++idigi) {
-              CSCStub CSCDigi = ThisStation.CSCStubs[idigi];
-              DigiInGeneric = IsCloseCSC(CSCDigi.eta, CSCSimHitAve_V[0], CSCDigi.phi, CSCSimHitAve_V[1]);
+            for (unsigned idigi = 0; idigi < ThisStation.AllCSCStubs.size(); ++idigi) {
+              CSCStub* CSCDigi = ThisStation.AllCSCStubs[idigi];
+              DigiInGeneric = IsCloseCSC(CSCDigi->eta, CSCSimHitAve_V[0], CSCDigi->phi, CSCSimHitAve_V[1]);
               if (DigiInGeneric) break;
             }
 
@@ -198,13 +198,13 @@ void GEMEff() {
           }
           float ClosedR = 999;
           float ClosedEta(999), ClosedPhi(999);
-          vector<CSCStub>& DigisToLook = (LookForDigiInMatched ? tp.CSCStubs : ThisStation.CSCStubs);
+          vector<CSCStub*>& DigisToLook = (LookForDigiInMatched ? ThisTP.MatchCSCStubs : ThisStation.AllCSCStubs);
           for (unsigned idigi = 0; idigi < DigisToLook.size(); ++idigi) {
-            CSCStub CSCDigi = DigisToLook[idigi];
-            if (!(CSCDigi.valid)) continue;
+            CSCStub* CSCDigi = DigisToLook[idigi];
+            if (!(CSCDigi->valid)) continue;
             // TH2Plots[3][0][disk][ring]->Fill(CSCDigi.z,CSCDigi.r);
             // TH2Plots[4][0][disk][ring]->Fill(CSCDigi.phi,CSCDigi.r);
-            vector<float> delta = CalcdR(CSCDigi.eta, CSCSimHitAve_V[0], CSCDigi.phi, CSCSimHitAve_V[1]);
+            vector<float> delta = CalcdR(CSCDigi->eta, CSCSimHitAve_V[0], CSCDigi->phi, CSCSimHitAve_V[1]);
             if (delta[0] < ClosedR) {
               ClosedR = delta[0];
               ClosedEta = delta[1];
@@ -215,9 +215,9 @@ void GEMEff() {
         }
 
         if (CanRecoGEM) {
-          if (tp.CSCSimHitAve.eta > 0) cangempos++;
-          else if (tp.CSCSimHitAve.eta < 0) cangemneg++;
-          bool DigiInMatch = tp.GEMDigis.size();
+          if (ThisTP.CSCSimHitAve.eta > 0) cangempos++;
+          else if (ThisTP.CSCSimHitAve.eta < 0) cangemneg++;
+          bool DigiInMatch = ThisTP.MatchGEMDigis.size();
           if (DigiInMatch) {
             for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
               DetEff[2][iEV][disk]->Fill(1,GEMSimHitAve_V[iEV]); // GEMReco
@@ -226,9 +226,9 @@ void GEMEff() {
           }
           else {
             bool DigiInGeneric = false;
-            for (unsigned idigi = 0; idigi < ThisStation.GEMDigis.size(); ++idigi) {
-              GEMDigi GEMDigi = ThisStation.GEMDigis[idigi];
-              DigiInGeneric = IsCloseGEM(GEMDigi.eta, GEMSimHitAve_V[0], GEMDigi.phi, GEMSimHitAve_V[1]);
+            for (unsigned idigi = 0; idigi < ThisStation.AllGEMDigis.size(); ++idigi) {
+              GEMDigi* GEMDigi = ThisStation.AllGEMDigis[idigi];
+              DigiInGeneric = IsCloseGEM(GEMDigi->eta, GEMSimHitAve_V[0], GEMDigi->phi, GEMSimHitAve_V[1]);
               if (DigiInGeneric) break;
             }
 
@@ -246,10 +246,10 @@ void GEMEff() {
           }
           float ClosedR = 999;
           float ClosedEta(999), ClosedPhi(999);
-          vector<GEMDigi>& DigisToLook = (LookForDigiInMatched ? tp.GEMDigis : ThisStation.GEMDigis);
+          vector<GEMDigi*>& DigisToLook = (LookForDigiInMatched ? ThisTP.MatchGEMDigis : ThisStation.AllGEMDigis);
           for (unsigned idigi = 0; idigi < DigisToLook.size(); ++idigi) {
-            GEMDigi GEMDigi = DigisToLook[idigi];
-            vector<float> delta = CalcdR(GEMDigi.eta, GEMSimHitAve_V[0], GEMDigi.phi, GEMSimHitAve_V[1]);
+            GEMDigi* GEMDigi = DigisToLook[idigi];
+            vector<float> delta = CalcdR(GEMDigi->eta, GEMSimHitAve_V[0], GEMDigi->phi, GEMSimHitAve_V[1]);
             if (delta[0] < ClosedR) {
               ClosedR = delta[0];
               ClosedEta = delta[1];
@@ -260,7 +260,7 @@ void GEMEff() {
         }
 
         if (CanRecoGEM) {
-          bool ClusterInMatch = tp.Clusters.size();
+          bool ClusterInMatch = ThisTP.MatchGEMPadDigiClusters.size();
           if (ClusterInMatch) {
             for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
               DetEff[4][iEV][disk]->Fill(1,GEMSimHitAve_V[iEV]);
@@ -269,9 +269,9 @@ void GEMEff() {
           }
           else {
             bool ClusterInGeneric = false;
-            for (unsigned ic = 0; ic < ThisStation.Clusters.size(); ++ic) {
-              GEMPadDigiCluster cl = ThisStation.Clusters[ic];
-              ClusterInGeneric = IsCloseCluster(cl.eta, GEMSimHitAve_V[0], cl.phi, GEMSimHitAve_V[1]);
+            for (unsigned ic = 0; ic < ThisStation.AllGEMPadDigiClusters.size(); ++ic) {
+              GEMPadDigiCluster* cl = ThisStation.AllGEMPadDigiClusters[ic];
+              ClusterInGeneric = IsCloseCluster(cl->eta, GEMSimHitAve_V[0], cl->phi, GEMSimHitAve_V[1]);
               if (ClusterInGeneric) break;
             }
 
@@ -289,10 +289,10 @@ void GEMEff() {
           }
           float ClosedR = 999;
           float ClosedEta(999), ClosedPhi(999);
-          vector<GEMPadDigiCluster>& DigisToLook = (LookForDigiInMatched ? tp.Clusters : ThisStation.Clusters);
+          vector<GEMPadDigiCluster*>& DigisToLook = (LookForDigiInMatched ? ThisTP.MatchGEMPadDigiClusters : ThisStation.AllGEMPadDigiClusters);
           for (unsigned idigi = 0; idigi < DigisToLook.size(); ++idigi) {
-            GEMPadDigiCluster cl = DigisToLook[idigi];
-            vector<float> delta = CalcdR(cl.eta, GEMSimHitAve_V[0], cl.phi, GEMSimHitAve_V[1]);
+            GEMPadDigiCluster* cl = DigisToLook[idigi];
+            vector<float> delta = CalcdR(cl->eta, GEMSimHitAve_V[0], cl->phi, GEMSimHitAve_V[1]);
             if (delta[0] < ClosedR) {
               ClosedR = delta[0];
               ClosedEta = delta[1];
@@ -304,16 +304,16 @@ void GEMEff() {
         }
 
         if (CanRecoCSC && CanRecoGEM) {
-          if (tp.CSCSimHitAve.eta > 0) canbothpos++;
-          else if (tp.CSCSimHitAve.eta < 0) canbothneg++;
+          if (ThisTP.CSCSimHitAve.eta > 0) canbothpos++;
+          else if (ThisTP.CSCSimHitAve.eta < 0) canbothneg++;
           vector<float> CSCSimHitAve_VExt = CSCSimHitAve_V;
           CSCSimHitAve_VExt.push_back(0);
-          for (unsigned icsc = 0; icsc < tp.CSCStubs.size(); ++icsc) {
-            CSCStub lct = tp.CSCStubs[icsc];
-            bool hasGEM1 = (lct.GEM1pad != 255);
-            bool hasGEM2 = (lct.GEM2pad != 255);
-            CSCSimHitAve_VExt[4] = lct.slope;
-            vector<float> CSCStub_V{lct.eta, lct.phi, lct.r, lct.z, (float) lct.slope};
+          for (unsigned icsc = 0; icsc < ThisTP.MatchCSCStubs.size(); ++icsc) {
+            CSCStub* lct = ThisTP.MatchCSCStubs[icsc];
+            bool hasGEM1 = (lct->GEM1pad != 255);
+            bool hasGEM2 = (lct->GEM2pad != 255);
+            CSCSimHitAve_VExt[4] = lct->slope;
+            vector<float> CSCStub_V{lct->eta, lct->phi, lct->r, lct->z, (float) lct->slope};
             for (unsigned iEV = 0; iEV < CSCGEMEff_V.size(); ++iEV) {
               CSCGEMEff[disk][ring][iEV][0][0]->Fill((hasGEM1 || hasGEM2), CSCSimHitAve_VExt[iEV]);
               CSCGEMEff[disk][ring][iEV][0][1]->Fill((hasGEM1), CSCSimHitAve_VExt[iEV]);
@@ -327,12 +327,12 @@ void GEMEff() {
           }
         }
 
-        if (CanRecoCSC && CanRecoGEM && tp.CSCStubs.size() && tp.GEMDigis.size()) {
-          for (unsigned icsc = 0; icsc < tp.CSCStubs.size(); ++icsc) {
-            float slope = tp.CSCStubs[icsc].slope;
-            float zsign = (tp.CSCStubs[icsc].z > 0) - (tp.CSCStubs[icsc].z < 0);
-            for (unsigned igem = 0; igem < tp.GEMDigis.size(); ++igem) {
-              float dphi = fabs(tp.GEMDigis[igem].phi - tp.CSCStubs[icsc].phi);
+        if (CanRecoCSC && CanRecoGEM && ThisTP.MatchCSCStubs.size() && ThisTP.MatchGEMDigis.size()) {
+          for (unsigned icsc = 0; icsc < ThisTP.MatchCSCStubs.size(); ++icsc) {
+            float slope = ThisTP.MatchCSCStubs[icsc]->slope;
+            float zsign = (ThisTP.MatchCSCStubs[icsc]->z > 0) - (ThisTP.MatchCSCStubs[icsc]->z < 0);
+            for (unsigned igem = 0; igem < ThisTP.MatchGEMDigis.size(); ++igem) {
+              float dphi = fabs(ThisTP.MatchGEMDigis[igem]->phi - ThisTP.MatchCSCStubs[icsc]->phi);
               while (dphi > 2 * M_PI) dphi -= 2 * M_PI;
               dPhiVsSlope[disk][ring]->Fill(slope,dphi);
             }
@@ -341,11 +341,11 @@ void GEMEff() {
       } // End of tp loop
 
 
-      for (unsigned icsc = 0; icsc < ThisStation.CSCStubs.size(); ++icsc) {
-        CSCStub lct = ThisStation.CSCStubs[icsc];
-        bool hasGEM1 = (lct.GEM1pad != 255);
-        bool hasGEM2 = (lct.GEM2pad != 255);
-        vector<float> CSCStub_V{lct.eta, lct.phi, lct.r, lct.z, (float)lct.slope};
+      for (unsigned icsc = 0; icsc < ThisStation.AllCSCStubs.size(); ++icsc) {
+        CSCStub* lct = ThisStation.AllCSCStubs[icsc];
+        bool hasGEM1 = (lct->GEM1pad != 255);
+        bool hasGEM2 = (lct->GEM2pad != 255);
+        vector<float> CSCStub_V{lct->eta, lct->phi, lct->r, lct->z, (float)lct->slope};
         for (unsigned iEV = 0; iEV < CSCGEMEff_V.size(); ++iEV) {
           CSCGEMEff[disk][ring][iEV][1][0]->Fill((hasGEM1 || hasGEM2), CSCStub_V[iEV]);
           CSCGEMEff[disk][ring][iEV][1][1]->Fill((hasGEM1), CSCStub_V[iEV]);
