@@ -19,7 +19,7 @@ using namespace std;
 void GEMEff() {
   TChain *tree = new TChain("NtupleMaker/eventTree");
   // tree->Add("out_Run4.root");
-  tree->Add("ntuple/Privatea_Run4_0.root");
+  tree->Add("../Privatea_Run4_0.root");
   // tree->Add("ntuple/Privatec_Run4.root");
   // tree->Add("pu.root");
 
