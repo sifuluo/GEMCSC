@@ -14,7 +14,29 @@
 #include "Tools.cc"
 
 using namespace std;
-//bundles all tp-related information
+
+struct DetId {
+  int detId;
+  int zendcap;
+  int ring;
+  int station;
+  int layer;
+  int chamber;
+  int roll;
+};
+
+pair<int, int> DiskAndRing(double r, double z, DetId det, TString info = "") {
+  pair<int, int> DaR = DiskAndRing(r,z);
+  if (DaR.first == (det.station - 1 ) && DaR.second == (det.ring - 1)) return DaR; // Consistent case
+  else if (det.station == 0 && det.ring == 1 && DaR.first == 0 && DaR.second == 3) return DaR; // ME0 is noted as (0,3) in our code, which is (0,1) in CMSSW
+  else if (det.station == 1 && det.ring == 4 && DaR.first == 0 && DaR.second == 0) return DaR; // ME1/1 is divided into ME1a and ME1b, where ME1a is noted as (1,4) in CMSSW
+  else {
+    cout << info << " ";
+    cout << Form("For r = %f, z = %f, DaR gives (%i, %i), while det gives (%i, %i)", r, z, DaR.first + 1, DaR.second + 1, det.station, det.ring)<<endl;
+    return DaR;
+  }
+}
+
 struct tp{
   float    pt;
   float    eta;
@@ -32,32 +54,51 @@ struct tp{
 };
 
 struct SimHit{
+  DetId    det;
   float    phi;
   float    eta;
   float    r;
   float    z;
-  int MatchTp;
+  int MatchIndex;
 };
 
 struct GEMPadDigi{
+  DetId det;
   int pad;
+  int strip;
+  int strip8;
+  int strip_me1a;
+  int strip8_me1a;
+  int keywire_min;
+  int keywire_max;
   int part;
   float phi;
   float eta;
   float r;
   float z;
+  int MatchIndex;
 };
 
 struct GEMPadDigiCluster{
+  DetId det;
+  int pad;
+  int strip;
+  int strip8;
+  int strip_me1a;
+  int strip8_me1a;
+  int keywire_min;
+  int keywire_max;
+  int part;
   float phi;
   float eta;
   float r;
   float z;
-  int MatchTp;
+  int MatchIndex;
   vector<int> pads;
 };
 
 struct CSCStub{
+  DetId det;
   float phi;
   float eta;
   float r;
@@ -66,17 +107,30 @@ struct CSCStub{
   int   pattern;
   int   slope;
   int   quality;
-  int   detId;
   int   keywire;
   int   strip;
   int   strip8;
   bool  valid;
   int   type;
   int   GEM1pad;
+  int   GEM1strip;
+  int   GEM1strip8;
+  int   GEM1strip_me1a;
+  int   GEM1strip8_me1a;
+  int   GEM1keywire_min;
+  int   GEM1keywire_max;
+  int   GEM1roll;
   int   GEM1part;
   int   GEM2pad;
+  int   GEM2strip;
+  int   GEM2strip8;
+  int   GEM2strip_me1a;
+  int   GEM2strip8_me1a;
+  int   GEM2keywire_min;
+  int   GEM2keywire_max;
+  int   GEM2roll;
   int   GEM2part;
-  int   MatchTp;
+  int   MatchIndex;
   vector<int> CLCT_hits;
   vector<int> CLCT_positions;
   vector<int> ALCT_hits;
@@ -86,11 +140,12 @@ struct CSCStub{
 };
 
 struct GEMDigi{
+  DetId det;
   float phi;
   float eta;
   float r;
   float z;
-  int   MatchTp;
+  int   MatchIndex;
   int   layer; //0 is innermost, 3 is outermost, given the subdetector in question
 };
 
@@ -111,6 +166,8 @@ public:
     GEMSimHits.clear();
     MatchCSCStubs.clear();
     MatchGEMDigis.clear();
+    MatchGEMPadDigis.clear();
+    MatchGEMPadDigiClusters.clear();
   };
   void CalcSimHitAve() {
     float ncsc = NSimHitsCSC = CSCSimHits.size();
@@ -131,9 +188,6 @@ public:
     };
     GEMSimHitAve.phi = TVector2::Phi_mpi_pi(GEMSimHitAve.phi);
   }
-  // void SetTP(tp tp_) {
-  //   TP = tp_;
-  // }
 
   tp*               TP;
   int               RawIndex;
@@ -146,6 +200,7 @@ public:
   vector<SimHit*>   GEMSimHits;
   vector<CSCStub*>  MatchCSCStubs;
   vector<GEMDigi*>  MatchGEMDigis;
+  vector<GEMPadDigi*>   MatchGEMPadDigis;
   vector<GEMPadDigiCluster*> MatchGEMPadDigiClusters;
 };
 
@@ -161,70 +216,11 @@ public:
     AllCSCStubs.clear();
     MatchGEMDigis.clear();
     AllGEMDigis.clear();
+    MatchGEMPadDigis.clear();
     AllGEMPadDigis.clear();
     MatchGEMPadDigiClusters.clear();
     AllGEMPadDigiClusters.clear();
   };
-  // void AddCSCSimHit(SimHit& d) {
-  //   for (unsigned i = 0; i < TPInfos.size(); ++i) {
-  //     if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].CSCSimHits.push_back(d);
-  //     return;
-  //   }
-  //   TPContent tmp((unsigned)d.MatchTp);
-  //   tmp.CSCSimHits.push_back(d);
-  //   TPInfos.push_back(tmp);
-  // }
-  // void AddGEMSimHit(SimHit& d) {
-  //   for (unsigned i = 0; i < TPInfos.size(); ++i) {
-  //     if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].GEMSimHits.push_back(d);
-  //     return;
-  //   }
-  //   TPContent tmp((unsigned)d.MatchTp);
-  //   tmp.GEMSimHits.push_back(d);
-  //   TPInfos.push_back(tmp);
-  // }
-  // void AddCSCStub(CSCStub& d) {
-  //   if (d.MatchTp == -1) {
-  //     CSCStubs.push_back(d);
-  //     return;
-  //   }
-  //   for (unsigned i = 0; i < TPInfos.size(); ++i) {
-  //     if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].CSCStubs.push_back(d);
-  //     return;
-  //   }
-  //   TPContent tmp((unsigned)d.MatchTp);
-  //   tmp.CSCStubs.push_back(d);
-  //   TPInfos.push_back(tmp);
-  // }
-  // void AddGEMDigi(GEMDigi& d) {
-  //   if (d.MatchTp == -1) {
-  //     GEMDigis.push_back(d);
-  //     return;
-  //   }
-  //   for (unsigned i = 0; i < TPInfos.size(); ++i) {
-  //     if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].GEMDigis.push_back(d);
-  //     return;
-  //   }
-  //   TPContent tmp((unsigned)d.MatchTp);
-  //   tmp.GEMDigis.push_back(d);
-  //   TPInfos.push_back(tmp);
-  // }
-  // void AddGEMPadDigi(GEMPadDigi d) {
-  //   GEMPadDigis.push_back(d);
-  // }
-  // void AddGEMPadDigiCluster(GEMPadDigiCluster& d) {
-  //   if (d.MatchTp == -1) {
-  //     Clusters.push_back(d);
-  //     return;
-  //   }
-  //   for (unsigned i = 0; i < TPInfos.size(); ++i) {
-  //     if (TPInfos[i].RawIndex == (unsigned)d.MatchTp) TPInfos[i].Clusters.push_back(d);
-  //     return;
-  //   }
-  //   TPContent tmp((unsigned)d.MatchTp);
-  //   tmp.Clusters.push_back(d);
-  //   TPInfos.push_back(tmp);
-  // }
 
   int FindTP(int ind) {
     for (unsigned i = 0; i < TPInfos.size(); ++i) {
@@ -235,45 +231,54 @@ public:
 
   void SortTP() {
     for (unsigned i = 0; i < CSCSimHits.size(); ++i) {
-      int tpindex = FindTP(CSCSimHits[i]->MatchTp);
+      int tpindex = FindTP(CSCSimHits[i]->MatchIndex);
       if (tpindex == -1) {
-        TPContent tmp(CSCSimHits[i]->MatchTp);
+        TPContent tmp(CSCSimHits[i]->MatchIndex);
         tmp.CSCSimHits.push_back(CSCSimHits[i]);
         TPInfos.push_back(tmp);
       }
       else TPInfos[tpindex].CSCSimHits.push_back(CSCSimHits[i]);
     }
     for (unsigned i = 0; i < GEMSimHits.size(); ++i) {
-      int tpindex = FindTP(GEMSimHits[i]->MatchTp);
+      int tpindex = FindTP(GEMSimHits[i]->MatchIndex);
       if (tpindex == -1) {
-        TPContent tmp(GEMSimHits[i]->MatchTp);
+        TPContent tmp(GEMSimHits[i]->MatchIndex);
         tmp.GEMSimHits.push_back(GEMSimHits[i]);
         TPInfos.push_back(tmp);
       }
       else TPInfos[tpindex].GEMSimHits.push_back(GEMSimHits[i]);
     }
     for (unsigned i = 0; i < MatchCSCStubs.size(); ++i) {
-      int tpindex = FindTP(MatchCSCStubs[i]->MatchTp);
+      int tpindex = FindTP(MatchCSCStubs[i]->MatchIndex);
       if (tpindex == -1) {
-        TPContent tmp(MatchCSCStubs[i]->MatchTp);
+        TPContent tmp(MatchCSCStubs[i]->MatchIndex);
         tmp.MatchCSCStubs.push_back(MatchCSCStubs[i]);
         TPInfos.push_back(tmp);
       }
       else TPInfos[tpindex].MatchCSCStubs.push_back(MatchCSCStubs[i]);
     }
     for (unsigned i = 0; i < MatchGEMDigis.size(); ++i) {
-      int tpindex = FindTP(MatchGEMDigis[i]->MatchTp);
+      int tpindex = FindTP(MatchGEMDigis[i]->MatchIndex);
       if (tpindex == -1) {
-        TPContent tmp(MatchGEMDigis[i]->MatchTp);
+        TPContent tmp(MatchGEMDigis[i]->MatchIndex);
         tmp.MatchGEMDigis.push_back(MatchGEMDigis[i]);
         TPInfos.push_back(tmp);
       }
       else TPInfos[tpindex].MatchGEMDigis.push_back(MatchGEMDigis[i]);
     }
-    for (unsigned i = 0; i < MatchGEMPadDigiClusters.size(); ++i) {
-      int tpindex = FindTP(MatchGEMPadDigiClusters[i]->MatchTp);
+    for (unsigned i = 0; i < MatchGEMPadDigis.size(); ++i) {
+      int tpindex = FindTP(MatchGEMPadDigis[i]->MatchIndex);
       if (tpindex == -1) {
-        TPContent tmp(MatchGEMPadDigiClusters[i]->MatchTp);
+        TPContent tmp(MatchGEMPadDigis[i]->MatchIndex);
+        tmp.MatchGEMPadDigis.push_back(MatchGEMPadDigis[i]);
+        TPInfos.push_back(tmp);
+      }
+      else TPInfos[tpindex].MatchGEMPadDigis.push_back(MatchGEMPadDigis[i]);
+    }
+    for (unsigned i = 0; i < MatchGEMPadDigiClusters.size(); ++i) {
+      int tpindex = FindTP(MatchGEMPadDigiClusters[i]->MatchIndex);
+      if (tpindex == -1) {
+        TPContent tmp(MatchGEMPadDigiClusters[i]->MatchIndex);
         tmp.MatchGEMPadDigiClusters.push_back(MatchGEMPadDigiClusters[i]);
         TPInfos.push_back(tmp);
       }
@@ -289,7 +294,8 @@ public:
   vector<CSCStub*>      AllCSCStubs;
   vector<GEMDigi*>    MatchGEMDigis;
   vector<GEMDigi*>      AllGEMDigis;
-  vector<GEMPadDigi*> AllGEMPadDigis;
+  vector<GEMPadDigi*> MatchGEMPadDigis;
+  vector<GEMPadDigi*>   AllGEMPadDigis;
   vector<GEMPadDigiCluster*> MatchGEMPadDigiClusters;
   vector<GEMPadDigiCluster*>   AllGEMPadDigiClusters;
 };
@@ -327,6 +333,7 @@ public:
     AllCSCStubs.clear();
     MatchGEMDigis.clear();
     AllGEMDigis.clear();
+    MatchGEMPadDigis.clear();
     AllGEMPadDigis.clear();
     MatchGEMPadDigiClusters.clear();
     AllGEMPadDigiClusters.clear();
@@ -337,40 +344,12 @@ public:
     I_AllCSCStubs.clear();
     I_MatchGEMDigis.clear();
     I_AllGEMDigis.clear();
+    I_MatchGEMPadDigis.clear();
     I_AllGEMPadDigis.clear();
     I_MatchGEMPadDigiClusters.clear();
     I_AllGEMPadDigiClusters.clear();
   }
-  // StationData& Station(pair<unsigned,unsigned> DaR){
-  //   return Stations[DaR.first][DaR.second];
-  // }
-  // void AddTP(tp& muontp) {
-  //   MuonTPs.push_back(muontp);
-  // }
-  // void AddCSCSimHit(SimHit& d) {
-  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-  //   Stations[DaR.first][DaR.second].AddCSCSimHit(d);
-  // }
-  // void AddGEMSimHit(SimHit& d) {
-  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-  //   Stations[DaR.first][DaR.second].AddGEMSimHit(d);
-  // }
-  // void AddCSCStub(CSCStub& d) {
-  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-  //   Stations[DaR.first][DaR.second].AddCSCStub(d);
-  // }
-  // void AddGEMDigi(GEMDigi& d) {
-  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-  //   Stations[DaR.first][DaR.second].AddGEMDigi(d);
-  // }
-  // void AddGEMPadDigi(GEMPadDigi d) {
-  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-  //   Stations[DaR.first][DaR.second].AddGEMPadDigi(d);
-  // }
-  // void AddGEMPadDigiCluster(GEMPadDigiCluster& d) {
-  //   pair<unsigned,unsigned> DaR = DiskAndRing(d.r,d.z);
-  //   Stations[DaR.first][DaR.second].AddGEMPadDigiCluster(d);
-  // }
+
   void SortByStation() {
     for (unsigned i = 0; i < I_MuonTPs.size(); ++i) {
       tp* p = &(I_MuonTPs[i]);
@@ -379,55 +358,61 @@ public:
     for (unsigned i = 0; i < I_CSCSimHits.size(); ++i) {
       SimHit* p = &(I_CSCSimHits[i]);
       CSCSimHits.push_back(p);
-      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"CSCSimHits");
       Stations[DaR.first][DaR.second].CSCSimHits.push_back(p);
     }
     for (unsigned i = 0; i < I_GEMSimHits.size(); ++i) {
       SimHit* p = &(I_GEMSimHits[i]);
       GEMSimHits.push_back(p);
-      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"GEMSimHits");
       Stations[DaR.first][DaR.second].GEMSimHits.push_back(p);
     }
     for (unsigned i = 0; i < I_MatchCSCStubs.size(); ++i) {
       CSCStub* p = &(I_MatchCSCStubs[i]);
       MatchCSCStubs.push_back(p);
-      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"MatchCSCStubs");
       Stations[DaR.first][DaR.second].MatchCSCStubs.push_back(p);
     }
     for (unsigned i = 0; i < I_AllCSCStubs.size(); ++i) {
       CSCStub* p = &(I_AllCSCStubs[i]);
       AllCSCStubs.push_back(p);
-      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"AllCSCStubs");
       Stations[DaR.first][DaR.second].AllCSCStubs.push_back(p);
     }
     for (unsigned i = 0; i < I_MatchGEMDigis.size(); ++i) {
       GEMDigi* p = &(I_MatchGEMDigis[i]);
       MatchGEMDigis.push_back(p);
-      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"MatchGEMDigis");
       Stations[DaR.first][DaR.second].MatchGEMDigis.push_back(p);
     }
     for (unsigned i = 0; i < I_AllGEMDigis.size(); ++i) {
       GEMDigi* p = &(I_AllGEMDigis[i]);
       AllGEMDigis.push_back(p);
-      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"AllGEMDigis");
       Stations[DaR.first][DaR.second].AllGEMDigis.push_back(p);
+    }
+    for (unsigned i = 0; i < I_MatchGEMPadDigis.size(); ++i) {
+      GEMPadDigi* p = &(I_MatchGEMPadDigis[i]);
+      MatchGEMPadDigis.push_back(p);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"MatchGEMPadDigis");
+      Stations[DaR.first][DaR.second].MatchGEMPadDigis.push_back(p);
     }
     for (unsigned i = 0; i < I_AllGEMPadDigis.size(); ++i) {
       GEMPadDigi* p = &(I_AllGEMPadDigis[i]);
       AllGEMPadDigis.push_back(p);
-      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"AllGEMPadDigis");
       Stations[DaR.first][DaR.second].AllGEMPadDigis.push_back(p);
     }
     for (unsigned i = 0; i < I_MatchGEMPadDigiClusters.size(); ++i) {
       GEMPadDigiCluster* p = &(I_MatchGEMPadDigiClusters[i]);
       MatchGEMPadDigiClusters.push_back(p);
-      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"MatchGEMPadDigiClusters");
       Stations[DaR.first][DaR.second].MatchGEMPadDigiClusters.push_back(p);
     }
     for (unsigned i = 0; i < I_AllGEMPadDigiClusters.size(); ++i) {
       GEMPadDigiCluster* p = &(I_AllGEMPadDigiClusters[i]);
       AllGEMPadDigiClusters.push_back(p);
-      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z);
+      pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"AllGEMPadDigiClusters");
       Stations[DaR.first][DaR.second].AllGEMPadDigiClusters.push_back(p);
     }
   }
@@ -469,6 +454,7 @@ public:
   vector<CSCStub>   I_AllCSCStubs;
   vector<GEMDigi> I_MatchGEMDigis;
   vector<GEMDigi>   I_AllGEMDigis;
+  vector<GEMPadDigi>   I_MatchGEMPadDigis;
   vector<GEMPadDigi>   I_AllGEMPadDigis;
   vector<GEMPadDigiCluster> I_MatchGEMPadDigiClusters;
   vector<GEMPadDigiCluster>   I_AllGEMPadDigiClusters;
@@ -480,11 +466,10 @@ public:
   vector<CSCStub*>   AllCSCStubs;
   vector<GEMDigi*> MatchGEMDigis;
   vector<GEMDigi*>   AllGEMDigis;
+  vector<GEMPadDigi*> MatchGEMPadDigis;
   vector<GEMPadDigi*>   AllGEMPadDigis;
   vector<GEMPadDigiCluster*> MatchGEMPadDigiClusters;
   vector<GEMPadDigiCluster*>   AllGEMPadDigiClusters;
-
-  // vector<GEMPadDigi> MatchGEMPadDigis; // This collection is integrated into LCT collections
 };
 
 

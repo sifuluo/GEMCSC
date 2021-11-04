@@ -11,8 +11,8 @@
 
 using namespace std;
 
-pair<unsigned,unsigned> DiskAndRing(float r_, float z_){
-  pair<unsigned,unsigned> DiskRingPair=make_pair(999,999);
+pair<int,int> DiskAndRing(float r_, float z_){
+  pair<int,int> DiskRingPair=make_pair(999,999);
   const float z=fabs(z_);
   const float r=fabs(r_);
   if     (z<640 && z>560 && r<300) DiskRingPair=make_pair(0,0); //1/1

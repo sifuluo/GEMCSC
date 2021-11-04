@@ -45,9 +45,23 @@ public:
     br_matchCscGEM2          .Init(eventTree,"matchCscGEM2","GEMPad",true);
     br_allCscGEM1            .Init(eventTree,"allCscGEM1","GEMPad",true);
     br_allCscGEM2            .Init(eventTree,"allCscGEM2","GEMPad",true);
-    br_gemPadDigi            .Init(eventTree,"gemPadDigi","GEMPad",false);
+    br_matchGemPadDigi       .Init(eventTree,"matchGemPadDigi","GEMPad",true);
+    br_allGemPadDigi         .Init(eventTree,"allGemPadDigi","GEMPad",false);
     br_matchGemPadDigiCluster.Init(eventTree,"matchGemPadDigiCluster","GEMPadDigiCluster",true);
     br_allGemPadDigiCluster  .Init(eventTree,"allGemPadDigiCluster","GEMPadDigiCluster",false);
+  }
+
+  DetId ReadDet(BranchReader br, unsigned i, bool isGEM) {
+    DetId tmp;
+    tmp.detId   = br.detId->at(i);
+    tmp.zendcap = br.zendcap->at(i);
+    tmp.ring    = br.ring->at(i);
+    tmp.station = br.station->at(i);
+    tmp.layer   = br.layer->at(i);
+    tmp.chamber = br.chamber->at(i);
+    if (isGEM) tmp.roll = br.roll->at(i);
+    else tmp.roll = -1;
+    return tmp;
   }
 
   void ReadTree() {
@@ -56,7 +70,6 @@ public:
     //TP
     const unsigned tp_size = br_tp.eta->size();
     for (unsigned i = 0; i < tp_size; ++i) {
-      // if(abs(br_tp.pdgid->at(i))!=13) cout << "Found one tp not muon : i = " << i  <<" pid = " << br_tp.pdgid->at(i) <<endl;
       if(abs(br_tp.pdgid->at(i))!=13) continue;
       tp tmp;
       tmp.pt      = br_tp.pt->at(i);
@@ -68,13 +81,13 @@ public:
       tmp.d0_prod = br_tp.d0_prod->at(i);
       tmp.z0_prod = br_tp.z0_prod->at(i);
       tmp.pdgid   = br_tp.pdgid->at(i);
+      tmp.pdgid   = br_tp.pdgid->at(i);
+      tmp.pdgid   = br_tp.pdgid->at(i);
       tmp.eventid = br_tp.eventid->at(i);
       tmp.charge  = br_tp.charge->at(i);
       tmp.Index   = i;
-      // Evt.AddTP(tmp);
       Evt.I_MuonTPs.push_back(tmp);
     };
-    // cout << "MuonTPs size = " << Evt.MuonTPs.size() <<endl;
     if (DebugMode) {
       cout << "Finished TP, Branch size = " << tp_size << ", Saved size = ";
       if (Evt.MuonTPs.size() != tp_size ) cout << ", Saved size = " << Evt.MuonTPs.size();
@@ -84,14 +97,14 @@ public:
     //GEM SimHit
     const unsigned GEMSimHitSize = br_gemSimHit.phi->size();
     for (unsigned i = 0; i < GEMSimHitSize; ++i) {
-      if (abs(br_tp.pdgid->at(br_gemSimHit.matchTp->at(i))) != 13) continue;
+      if (abs(br_tp.pdgid->at(br_gemSimHit.matchIndex->at(i))) != 13) continue;
       SimHit tmp;
+      tmp.det     = br_gemSimHit.ReadDet(i);
       tmp.eta     = br_gemSimHit.eta->at(i);
       tmp.phi     = br_gemSimHit.phi->at(i);
       tmp.r       = br_gemSimHit.r->at(i);
       tmp.z       = br_gemSimHit.z->at(i);
-      tmp.MatchTp = (unsigned)br_gemSimHit.matchTp->at(i);
-      // Evt.AddGEMSimHit(tmp);
+      tmp.MatchIndex = (unsigned)br_gemSimHit.matchIndex->at(i);
       Evt.I_GEMSimHits.push_back(tmp);
     };
     if (DebugMode) cout << "Finished GEMSimHits, Starting CSCSimHits" <<endl;
@@ -99,13 +112,14 @@ public:
     //CSC SimHit
     const unsigned CSCSimHitSize = br_cscSimHit.phi->size();
     for(unsigned i = 0; i < CSCSimHitSize; ++i) {
-      if(abs(br_tp.pdgid->at(br_cscSimHit.matchTp->at(i))) != 13) continue;//remove SimHits not from muons
+      if(abs(br_tp.pdgid->at(br_cscSimHit.matchIndex->at(i))) != 13) continue;//remove SimHits not from muons
       SimHit tmp;
+      tmp.det     = br_cscSimHit.ReadDet(i);
       tmp.phi     = br_cscSimHit.phi->at(i);
       tmp.eta     = br_cscSimHit.eta->at(i);
       tmp.r       = br_cscSimHit.r->at(i);
       tmp.z       = br_cscSimHit.z->at(i);
-      tmp.MatchTp = (unsigned)br_cscSimHit.matchTp->at(i);
+      tmp.MatchIndex = (unsigned)br_cscSimHit.matchIndex->at(i);
       // Evt.AddCSCSimHit(tmp);
       Evt.I_CSCSimHits.push_back(tmp);
     };
@@ -115,6 +129,7 @@ public:
     const unsigned allCscStubsLCTSize = br_allCscStubsLCT.phi->size();
     for(unsigned i = 0; i < allCscStubsLCTSize; ++i) {
       CSCStub tmp;
+      tmp.det     = br_allCscStubsLCT.ReadDet(i);
       tmp.phi     = br_allCscStubsLCT.phi->at(i);
       tmp.eta     = br_allCscStubsLCT.eta->at(i);
       tmp.r       = br_allCscStubsLCT.r->at(i);
@@ -128,12 +143,25 @@ public:
       tmp.strip8  = br_allCscStubsLCT.strip8->at(i);
       tmp.valid   = br_allCscStubsLCT.valid->at(i);
       tmp.type    = br_allCscStubsLCT.type->at(i);
-      tmp.detId   = br_allCscStubsLCT.detId->at(i);
-      tmp.GEM1pad = br_allCscStubsLCT.GEM1pad->at(i);
-      tmp.GEM1part= br_allCscStubsLCT.GEM1part->at(i);
-      tmp.GEM2pad = br_allCscStubsLCT.GEM2pad->at(i);
-      tmp.GEM2part= br_allCscStubsLCT.GEM2part->at(i);
-      tmp.MatchTp = -1;
+      tmp.GEM1pad         = br_allCscStubsLCT.GEM1pad->at(i);
+      tmp.GEM1strip       = br_allCscStubsLCT.GEM1strip->at(i);
+      tmp.GEM1strip8      = br_allCscStubsLCT.GEM1strip8->at(i);
+      tmp.GEM1strip_me1a  = br_allCscStubsLCT.GEM1strip_me1a->at(i);
+      tmp.GEM1strip8_me1a = br_allCscStubsLCT.GEM1strip8_me1a->at(i);
+      tmp.GEM1keywire_min = br_allCscStubsLCT.GEM1keywire_min->at(i);
+      tmp.GEM1keywire_max = br_allCscStubsLCT.GEM1keywire_max->at(i);
+      tmp.GEM1roll        = br_allCscStubsLCT.GEM1roll->at(i);
+      tmp.GEM1part        = br_allCscStubsLCT.GEM1part->at(i);
+      tmp.GEM2pad         = br_allCscStubsLCT.GEM2pad->at(i);
+      tmp.GEM2strip       = br_allCscStubsLCT.GEM2strip->at(i);
+      tmp.GEM2strip8      = br_allCscStubsLCT.GEM2strip8->at(i);
+      tmp.GEM2strip_me1a  = br_allCscStubsLCT.GEM2strip_me1a->at(i);
+      tmp.GEM2strip8_me1a = br_allCscStubsLCT.GEM2strip8_me1a->at(i);
+      tmp.GEM2keywire_min = br_allCscStubsLCT.GEM2keywire_min->at(i);
+      tmp.GEM2keywire_max = br_allCscStubsLCT.GEM2keywire_max->at(i);
+      tmp.GEM2roll        = br_allCscStubsLCT.GEM2roll->at(i);
+      tmp.GEM2part        = br_allCscStubsLCT.GEM2part->at(i);
+      tmp.MatchIndex = -1;
       tmp.CLCT_hits.clear();
       tmp.CLCT_positions.clear();
       tmp.ALCT_hits.clear();
@@ -146,8 +174,8 @@ public:
       unsigned GEMPadIndex;
       bool found = false;
       for (unsigned j = 0; j < br_allCscGEM1.phi->size(); ++j) {
-        if (br_allCscGEM1.matchCSC->at(j) < 0) continue;
-        if ((unsigned)br_allCscGEM1.matchCSC->at(j) == i) {
+        if (br_allCscGEM1.matchIndex->at(j) < 0) continue;
+        if ((unsigned)br_allCscGEM1.matchIndex->at(j) == i) {
           GEMPadIndex = j;
           found = true;
           break;
@@ -155,8 +183,8 @@ public:
       }
       if (found) {
         for (unsigned j = 0; j < br_allCscGEM2.phi->size(); ++j) {
-          if (br_allCscGEM2.matchCSC->at(j) < 0) continue;
-          if ((unsigned)br_allCscGEM2.matchCSC->at(j) == i) {
+          if (br_allCscGEM2.matchIndex->at(j) < 0) continue;
+          if ((unsigned)br_allCscGEM2.matchIndex->at(j) == i) {
             if (GEMPadIndex != j) cout << " allCscStubsLCT GEM1 and GEM2 inconsistent" <<endl;
             break;
           }
@@ -194,8 +222,9 @@ public:
     // MatchedCSCStubs
     const unsigned matchCscStubsLCTSize = br_matchCscStubsLCT.phi->size();
     for(unsigned i = 0; i < matchCscStubsLCTSize; ++i) {
-      if(abs(br_tp.pdgid->at(br_matchCscStubsLCT.matchTp->at(i)))!=13) continue;
+      if(abs(br_tp.pdgid->at(br_matchCscStubsLCT.matchIndex->at(i)))!=13) continue;
       CSCStub tmp;
+      tmp.det     = br_matchCscStubsLCT.ReadDet(i);
       tmp.phi     = br_matchCscStubsLCT.phi->at(i);
       tmp.eta     = br_matchCscStubsLCT.eta->at(i);
       tmp.r       = br_matchCscStubsLCT.r->at(i);
@@ -209,12 +238,11 @@ public:
       tmp.strip8  = br_matchCscStubsLCT.strip8->at(i);
       tmp.valid   = br_matchCscStubsLCT.valid->at(i);
       tmp.type    = br_matchCscStubsLCT.type->at(i);
-      tmp.detId   = br_matchCscStubsLCT.detId->at(i);
       tmp.GEM1pad = br_matchCscStubsLCT.GEM1pad->at(i);
       tmp.GEM1part= br_matchCscStubsLCT.GEM1part->at(i);
       tmp.GEM2pad = br_matchCscStubsLCT.GEM2pad->at(i);
       tmp.GEM2part= br_matchCscStubsLCT.GEM2part->at(i);
-      tmp.MatchTp = br_matchCscStubsLCT.matchTp->at(i);
+      tmp.MatchIndex = br_matchCscStubsLCT.matchIndex->at(i);
       tmp.CLCT_hits.clear();
       tmp.CLCT_positions.clear();
       tmp.ALCT_hits.clear();
@@ -227,8 +255,8 @@ public:
       unsigned GEMPadIndex;
       bool found = false;
       for (unsigned j = 0; j < br_matchCscGEM1.phi->size(); ++j) {
-        if (br_matchCscGEM1.matchCSC->at(j) < 0) continue;
-        if ((unsigned)br_matchCscGEM1.matchCSC->at(j) == i) {
+        if (br_matchCscGEM1.matchIndex->at(j) < 0) continue;
+        if ((unsigned)br_matchCscGEM1.matchIndex->at(j) == i) {
           GEMPadIndex = j;
           found = true;
           break;
@@ -236,8 +264,8 @@ public:
       }
       if (found) {
         for (unsigned j = 0; j < br_matchCscGEM2.phi->size(); ++j) {
-          if (br_matchCscGEM2.matchCSC->at(j) < 0) continue;
-          if ((unsigned)br_matchCscGEM2.matchCSC->at(j) == i) {
+          if (br_matchCscGEM2.matchIndex->at(j) < 0) continue;
+          if ((unsigned)br_matchCscGEM2.matchIndex->at(j) == i) {
             if (GEMPadIndex != j) cout << " matchCscStubsLCT GEM1 and GEM2 inconsistent" <<endl;
             break;
           }
@@ -276,11 +304,12 @@ public:
     const unsigned allGemDigiSize = br_allGemDigi.phi->size();
     for(unsigned i = 0; i < allGemDigiSize; ++i) {
       GEMDigi tmp;
+      tmp.det     = br_allGemDigi.ReadDet(i);
       tmp.phi     = br_allGemDigi.phi->at(i);
       tmp.eta     = br_allGemDigi.eta->at(i);
       tmp.r       = br_allGemDigi.r->at(i);
       tmp.z       = br_allGemDigi.z->at(i);
-      tmp.MatchTp = -1;
+      tmp.MatchIndex = -1;
       tmp.layer   = GEMlayerIndex(br_allGemDigi.z->at(i));
       // Evt.AddGEMDigi(tmp);
       Evt.I_AllGEMDigis.push_back(tmp);
@@ -290,13 +319,14 @@ public:
     //MatchedGEMDigis
     const unsigned matchGemDigiSize = br_matchGemDigi.phi->size();
     for(unsigned i = 0; i < matchGemDigiSize; ++i) {
-      if(abs(br_tp.pdgid->at(br_matchGemDigi.matchTp->at(i)))!=13) continue;
+      if(abs(br_tp.pdgid->at(br_matchGemDigi.matchIndex->at(i)))!=13) continue;
       GEMDigi tmp;
+      tmp.det     = br_matchGemDigi.ReadDet(i);
       tmp.phi     = br_matchGemDigi.phi->at(i);
       tmp.eta     = br_matchGemDigi.eta->at(i);
       tmp.r       = br_matchGemDigi.r->at(i);
       tmp.z       = br_matchGemDigi.z->at(i);
-      tmp.MatchTp = br_matchGemDigi.matchTp->at(i);
+      tmp.MatchIndex = br_matchGemDigi.matchIndex->at(i);
       tmp.layer   = GEMlayerIndex(br_matchGemDigi.z->at(i));
       // Evt.AddGEMDigi(tmp);
       Evt.I_MatchGEMDigis.push_back(tmp);
@@ -304,20 +334,39 @@ public:
     if (DebugMode) cout << "Finished matchGEMDigis, Starting GEMPadDigis" <<endl;
 
     //GEMPadDigis
-    const unsigned GEMPadDigiSize = br_gemPadDigi.phi->size();
-    for(unsigned i = 0; i < GEMPadDigiSize; ++i) {
+    const unsigned allGEMPadDigiSize = br_allGemPadDigi.phi->size();
+    for(unsigned i = 0; i < allGEMPadDigiSize; ++i) {
       GEMPadDigi tmp;
-      tmp.phi = br_gemPadDigi.phi->at(i);
-      tmp.eta = br_gemPadDigi.eta->at(i);
-      tmp.r   = br_gemPadDigi.r->at(i);
-      tmp.z   = br_gemPadDigi.z->at(i);
-      tmp.part= br_gemPadDigi.part->at(i);
-      tmp.pad = br_gemPadDigi.pad->at(i);
+      tmp.det = br_allGemPadDigi.ReadDet(i);
+      tmp.phi = br_allGemPadDigi.phi->at(i);
+      tmp.eta = br_allGemPadDigi.eta->at(i);
+      tmp.r   = br_allGemPadDigi.r->at(i);
+      tmp.z   = br_allGemPadDigi.z->at(i);
+      tmp.part= br_allGemPadDigi.part->at(i);
+      tmp.pad = br_allGemPadDigi.pad->at(i);
       // cout << "z = " << tmp.z << ", r = " << tmp.r <<endl;
       // Evt.AddGEMPadDigi(tmp);
       Evt.I_AllGEMPadDigis.push_back(tmp);
     };
-    if (DebugMode) cout << "Finished GEMPadDigis, Starting AllGEMPadDigiClusters" <<endl;
+    if (DebugMode) cout << "Finished AllGEMPadDigis, Starting MatchGEMPadDigis" <<endl;
+
+    //MatchGEMPadDigis
+    const unsigned matchGEMPadDigiSize = br_matchGemPadDigi.phi->size();
+    for(unsigned i = 0; i < matchGEMPadDigiSize; ++i) {
+      GEMPadDigi tmp;
+      tmp.det = br_matchGemPadDigi.ReadDet(i);
+      tmp.phi = br_matchGemPadDigi.phi->at(i);
+      tmp.eta = br_matchGemPadDigi.eta->at(i);
+      tmp.r   = br_matchGemPadDigi.r->at(i);
+      tmp.z   = br_matchGemPadDigi.z->at(i);
+      tmp.part= br_matchGemPadDigi.part->at(i);
+      tmp.pad = br_matchGemPadDigi.pad->at(i);
+      tmp.MatchIndex = br_matchGemPadDigi.matchIndex->at(i);
+      // cout << "z = " << tmp.z << ", r = " << tmp.r <<endl;
+      // Evt.AddGEMPadDigi(tmp);
+      Evt.I_MatchGEMPadDigis.push_back(tmp);
+    };
+    if (DebugMode) cout << "Finished MatchGEMPadDigis, Starting AllGEMPadDigiClusters" <<endl;
 
     // AllGEMPadDigiClusters
     const unsigned allGemPadDigiClusterSize = br_allGemPadDigiCluster.phi->size();
@@ -327,11 +376,12 @@ public:
     unsigned allGemPadDigiClusterPadIndex = 0;
     for (unsigned i = 0; i < allGemPadDigiClusterSize; ++i) {
       GEMPadDigiCluster tmp;
+      tmp.det = br_allGemPadDigiCluster.ReadDet(i);
       tmp.phi = br_allGemPadDigiCluster.phi->at(i);
       tmp.eta = br_allGemPadDigiCluster.eta->at(i);
       tmp.r = br_allGemPadDigiCluster.r->at(i);
       tmp.z = br_allGemPadDigiCluster.z->at(i);
-      tmp.MatchTp = -1;
+      tmp.MatchIndex = -1;
       tmp.pads.clear();
       for (unsigned k = 0; k < (unsigned)br_allGemPadDigiCluster.len->at(i); ++k) {
         tmp.pads.push_back(br_allGemPadDigiCluster.pads->at(allGemPadDigiClusterPadIndex));
@@ -349,14 +399,15 @@ public:
     if (matchlensum != br_matchGemPadDigiCluster.pads->size()) cout << "Inconsistent Pads size for matchGemPadDigiCluster" <<endl;
     unsigned matchGemPadDigiClusterPadIndex = 0;
     for (unsigned i = 0; i < matchGemPadDigiClusterSize; ++i) {
-      if (abs(br_tp.pdgid->at(br_matchGemPadDigiCluster.matchTp->at(i)))!=13) continue;
+      if (abs(br_tp.pdgid->at(br_matchGemPadDigiCluster.matchIndex->at(i)))!=13) continue;
       GEMPadDigiCluster tmp;
+      tmp.det = br_matchGemPadDigiCluster.ReadDet(i);
       tmp.phi = br_matchGemPadDigiCluster.phi->at(i);
       tmp.eta = br_matchGemPadDigiCluster.eta->at(i);
       tmp.r = br_matchGemPadDigiCluster.r->at(i);
       tmp.z = br_matchGemPadDigiCluster.z->at(i);
-      tmp.MatchTp = br_matchGemPadDigiCluster.matchTp->at(i);
-      if (tmp.MatchTp == -1)cout << " tmp.MatchTp = " << tmp.MatchTp;
+      tmp.MatchIndex = br_matchGemPadDigiCluster.matchIndex->at(i);
+      if (tmp.MatchIndex == -1)cout << " tmp.MatchIndex = " << tmp.MatchIndex;
       tmp.pads.clear();
       for (unsigned k = 0; k < (unsigned)br_matchGemPadDigiCluster.len->at(i); ++k) {
         tmp.pads.push_back(br_matchGemPadDigiCluster.pads->at(matchGemPadDigiClusterPadIndex));
@@ -367,9 +418,6 @@ public:
     }
     if (DebugMode) cout << "Finished MatchGEMPadDigiClusters, Starting TPCalc" <<endl;
     Evt.Run();
-    // Evt.SortByStation();
-    // Evt.FillTP();
-    // Evt.CalcSimHitAve();
     if (DebugMode) cout << "Finished Reading" <<endl;
   }
 
@@ -379,7 +427,7 @@ public:
   BranchReader br_allCscStubsLCT, br_allCscStubsALCT, br_allCscStubsCLCT;
   BranchReader br_allALCT, br_allCLCT, br_allGemDigi;
   BranchReader br_matchCscStubsLCT, br_matchCscStubsALCT, br_matchCscStubsCLCT, br_matchGemDigi;
-  BranchReader br_allCscGEM1, br_allCscGEM2, br_matchCscGEM1, br_matchCscGEM2, br_gemPadDigi;
+  BranchReader br_allCscGEM1, br_allCscGEM2, br_matchCscGEM1, br_matchCscGEM2, br_allGemPadDigi, br_matchGemPadDigi;
   BranchReader br_matchGemPadDigiCluster, br_allGemPadDigiCluster;
 
   bool DebugMode;
@@ -387,6 +435,16 @@ public:
 private:
   TChain *eventTree;
 };
+
+bool DaRValidate(double r, double z, DetId det, TString info = "") {
+  auto DaR = DiskAndRing(r,z);
+  if (DaR.first == (det.station - 1 ) && DaR.second == (det.ring - 1)) return true;
+  else {
+    cout << info << " ";
+    cout << Form("For r = %f, z = %f, DaR gives (%i, %i), while det gives (%i, %i)", r, z, DaR.first, DaR.second, det.station, det.ring)<<endl;
+    return false;
+  }
+}
 
 int MuonTPindex(unsigned Original_, vector<tp> MuonTPs_){
   const unsigned TPsize=MuonTPs_.size();

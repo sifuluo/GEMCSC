@@ -37,7 +37,7 @@ void GEMEff() {
   // vector<TString> LBranches{"tp","cscSimHit","gemSimHit"};
 
   // Efficiency plots
-  vector<TString> Eff_T{"CSCReco","CSCMatch","GEMReco","GEMMatch","ClusterReco","ClusterMatch"};
+  vector<TString> Eff_T{"CSCReco","CSCMatch","GEMReco","GEMMatch","ClusterReco","ClusterMatch","PadReco", "PadMatch"};
   vector<TString> Eff_V{"Eta","Phi","R","z"};
   vector<TString> Eff_V2{"#eta","#phi","R","z"};
   vector<int> Eff_V_div{60,70,80,220};
@@ -156,12 +156,12 @@ void GEMEff() {
         const vector<float> GEMSimHitAve_V{ThisTP.GEMSimHitAve.eta, ThisTP.GEMSimHitAve.phi, ThisTP.GEMSimHitAve.r, ThisTP.GEMSimHitAve.z};
         bool CanRecoCSC = (ThisTP.NSimHitsCSC > 3);
         bool CanRecoGEM = (ThisTP.NSimHitsGEM > 0);
-        if (!CanRecoCSC) {
-          cout << "This TP cannot reconstruct CSCStubs, NSimHitsCSC = " << ThisTP.NSimHitsCSC << ", ThisTP eta = " << ThisTP.TP->eta << ", SimHitAveEta = " << ThisTP.CSCSimHitAve.eta << endl;
-        }
-        if (!CanRecoGEM) {
-          cout << "This TP cannot reconstruct GEMDigis, NSimHitsGEM = " << ThisTP.NSimHitsGEM << ", ThisTP eta = " << ThisTP.TP->eta << ", SimHitAveEta = " << ThisTP.GEMSimHitAve.eta << endl;
-        }
+        // if (!CanRecoCSC) {
+        //   cout << "This TP cannot reconstruct CSCStubs, NSimHitsCSC = " << ThisTP.NSimHitsCSC << ", ThisTP eta = " << ThisTP.TP->eta << ", SimHitAveEta = " << ThisTP.CSCSimHitAve.eta << endl;
+        // }
+        // if (!CanRecoGEM) {
+        //   cout << "This TP cannot reconstruct GEMDigis, NSimHitsGEM = " << ThisTP.NSimHitsGEM << ", ThisTP eta = " << ThisTP.TP->eta << ", SimHitAveEta = " << ThisTP.GEMSimHitAve.eta << endl;
+        // }
         if (ThisTP.TP->eta > 0) tppos++;
         else if (ThisTP.TP->eta < 0) tpneg++;
         if (CanRecoCSC) {
