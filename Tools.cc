@@ -101,8 +101,14 @@ bool IsCloseGEM(float eta1, float eta2, float phi1, float phi2) {
   return false;
 }
 
+bool IsClosePad(float eta1, float eta2, float phi1, float phi2) {
+  if (fabs(eta1 - eta2) < 0.5 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.623863) return true;
+  return false;
+}
+
 bool IsCloseCluster(float eta1, float eta2, float phi1, float phi2) {
-  if (fabs(eta1 - eta2) < 0.037425 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.00141607) return true;
+  // if (fabs(eta1 - eta2) < 0.037425 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.00141607) return true;
+  if (fabs(eta1 - eta2) < 0.37425 && TVector2::Phi_mpi_pi(phi1 - phi2) < 0.141607) return true;
   return false;
 }
 

@@ -22,7 +22,13 @@ struct DetId {
   int station;
   int layer;
   int chamber;
-  int roll;
+  int roll; // Exclusive to GEM
+  bool SameXY(DetId id) {
+    return (zendcap == id.zendcap && (ring == id.ring || abs(ring - id.ring) == 3) && station == id.station && (abs(chamber - id.chamber) < 2 || abs(chamber - id.chamber) == 17 || abs(chamber - id.chamber) == 35) && abs(roll - id.roll) < 2);
+  }
+  bool operator==(const DetId id) {
+    return (detId == id.detId && zendcap == id.zendcap && ring == id.ring && station == id.station && layer == id.layer && chamber == id.chamber && roll == id.roll);
+  }
 };
 
 pair<int, int> DiskAndRing(double r, double z, DetId det, TString info = "") {
@@ -187,9 +193,22 @@ public:
       GEMSimHitAve.z   += GEMSimHits[i]->z / ngem;
     };
     GEMSimHitAve.phi = TVector2::Phi_mpi_pi(GEMSimHitAve.phi);
+    // SimHit DetId Verification
+    for (unsigned i = 0; i < NSimHitsCSC; ++i) {
+      DetId det1 = CSCSimHits[i]->det;
+      if (i == 0) CSCDetId = det1;
+      else if (!(det1.SameXY(CSCDetId)) ) cout << Form("Inconsistent DetId in CSC: S:%i %i, Z:%d %d, R:%d %d, L:%d %d, C:%d %d",CSCDetId.station, det1.station, CSCDetId.zendcap, det1.zendcap, CSCDetId.ring,det1.ring,CSCDetId.layer,det1.layer,CSCDetId.chamber, det1.chamber) <<endl;
+    }
+    for (unsigned i = 0; i < NSimHitsGEM; ++i) {
+      DetId det1 = GEMSimHits[i]->det;
+      if (i == 0) GEMDetId = det1;
+      else if (!(det1.SameXY(GEMDetId))) cout << Form("Inconsistent DetId in GEM: S:%i %i, Z:%d %d, R:%d %d, L:%d %d, C:%d %d, Ro:%d %d",GEMDetId.station, det1.station, GEMDetId.zendcap, det1.zendcap, GEMDetId.ring,det1.ring,GEMDetId.layer,det1.layer,GEMDetId.chamber, det1.chamber,GEMDetId.roll, det1.roll) <<endl;
+    }
   }
 
   tp*               TP;
+  DetId             GEMDetId;
+  DetId             CSCDetId;
   int               RawIndex;
   int               SortedIndex;
   int               NSimHitsCSC;
@@ -308,10 +327,14 @@ public:
   void Init() {
     Stations = vector<vector<StationData> >{
       {
-        StationData("1-1"),
+        StationData("ME0")
+      },
+      {
+        StationData("1-1"),// Both ME1a and ME1b are filled here. And they have their own copy in the last two StationDatas.
         StationData("1-2"),
         StationData("1-3"),
-        StationData("1-0")
+        StationData("ME1a"),
+        StationData("ME1b")
       },
       {
         StationData("2-1"),
@@ -350,6 +373,12 @@ public:
     I_AllGEMPadDigiClusters.clear();
   }
 
+  int ME1abCon(DetId det) {
+    if (det.station == 1 && det.ring == 4) return 1;
+    if (det.station == 1 && det.ring == 1) return 5;
+    return 0;
+  }
+
   void SortByStation() {
     for (unsigned i = 0; i < I_MuonTPs.size(); ++i) {
       tp* p = &(I_MuonTPs[i]);
@@ -359,61 +388,67 @@ public:
       SimHit* p = &(I_CSCSimHits[i]);
       CSCSimHits.push_back(p);
       pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"CSCSimHits");
-      Stations[DaR.first][DaR.second].CSCSimHits.push_back(p);
+      Stations[p->det.station][p->det.ring - 1].CSCSimHits.push_back(p);
+      int ME1abRing = ME1abCon(p->det);
+      if (ME1abRing) Stations[p->det.station][ME1abRing - 1].CSCSimHits.push_back(p);
     }
     for (unsigned i = 0; i < I_GEMSimHits.size(); ++i) {
       SimHit* p = &(I_GEMSimHits[i]);
       GEMSimHits.push_back(p);
       pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"GEMSimHits");
-      Stations[DaR.first][DaR.second].GEMSimHits.push_back(p);
+      Stations[p->det.station][p->det.ring - 1].GEMSimHits.push_back(p);
     }
     for (unsigned i = 0; i < I_MatchCSCStubs.size(); ++i) {
       CSCStub* p = &(I_MatchCSCStubs[i]);
       MatchCSCStubs.push_back(p);
       pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"MatchCSCStubs");
-      Stations[DaR.first][DaR.second].MatchCSCStubs.push_back(p);
+      Stations[p->det.station][p->det.ring - 1].MatchCSCStubs.push_back(p);
+      int ME1abRing = ME1abCon(p->det);
+      if (ME1abRing) Stations[p->det.station][ME1abRing - 1].MatchCSCStubs.push_back(p);
     }
     for (unsigned i = 0; i < I_AllCSCStubs.size(); ++i) {
       CSCStub* p = &(I_AllCSCStubs[i]);
       AllCSCStubs.push_back(p);
       pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"AllCSCStubs");
-      Stations[DaR.first][DaR.second].AllCSCStubs.push_back(p);
+      Stations[p->det.station][p->det.ring - 1].AllCSCStubs.push_back(p);
+      int ME1abRing = ME1abCon(p->det);
+      if (ME1abRing) Stations[p->det.station][ME1abRing - 1].AllCSCStubs.push_back(p);
     }
     for (unsigned i = 0; i < I_MatchGEMDigis.size(); ++i) {
       GEMDigi* p = &(I_MatchGEMDigis[i]);
       MatchGEMDigis.push_back(p);
       pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"MatchGEMDigis");
-      Stations[DaR.first][DaR.second].MatchGEMDigis.push_back(p);
+      Stations[p->det.station][p->det.ring - 1].MatchGEMDigis.push_back(p);
     }
     for (unsigned i = 0; i < I_AllGEMDigis.size(); ++i) {
       GEMDigi* p = &(I_AllGEMDigis[i]);
       AllGEMDigis.push_back(p);
       pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"AllGEMDigis");
-      Stations[DaR.first][DaR.second].AllGEMDigis.push_back(p);
+      Stations[p->det.station][p->det.ring - 1].AllGEMDigis.push_back(p);
     }
     for (unsigned i = 0; i < I_MatchGEMPadDigis.size(); ++i) {
       GEMPadDigi* p = &(I_MatchGEMPadDigis[i]);
       MatchGEMPadDigis.push_back(p);
       pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"MatchGEMPadDigis");
-      Stations[DaR.first][DaR.second].MatchGEMPadDigis.push_back(p);
+      Stations[p->det.station][p->det.ring - 1].MatchGEMPadDigis.push_back(p);
     }
     for (unsigned i = 0; i < I_AllGEMPadDigis.size(); ++i) {
       GEMPadDigi* p = &(I_AllGEMPadDigis[i]);
       AllGEMPadDigis.push_back(p);
       pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"AllGEMPadDigis");
-      Stations[DaR.first][DaR.second].AllGEMPadDigis.push_back(p);
+      Stations[p->det.station][p->det.ring - 1].AllGEMPadDigis.push_back(p);
     }
     for (unsigned i = 0; i < I_MatchGEMPadDigiClusters.size(); ++i) {
       GEMPadDigiCluster* p = &(I_MatchGEMPadDigiClusters[i]);
       MatchGEMPadDigiClusters.push_back(p);
       pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"MatchGEMPadDigiClusters");
-      Stations[DaR.first][DaR.second].MatchGEMPadDigiClusters.push_back(p);
+      Stations[p->det.station][p->det.ring - 1].MatchGEMPadDigiClusters.push_back(p);
     }
     for (unsigned i = 0; i < I_AllGEMPadDigiClusters.size(); ++i) {
       GEMPadDigiCluster* p = &(I_AllGEMPadDigiClusters[i]);
       AllGEMPadDigiClusters.push_back(p);
       pair<unsigned,unsigned> DaR = DiskAndRing(p->r,p->z,p->det,"AllGEMPadDigiClusters");
-      Stations[DaR.first][DaR.second].AllGEMPadDigiClusters.push_back(p);
+      Stations[p->det.station][p->det.ring - 1].AllGEMPadDigiClusters.push_back(p);
     }
   }
   void SortTP() {

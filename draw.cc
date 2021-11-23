@@ -11,10 +11,10 @@
   c2->Divide(2,1);
   TCanvas *c1 = new TCanvas("c1","c1",600,500);
 
-  vector<TString> LDisks{"D1","D2"};
+  vector<TString> LDisks{"D0","D1","D2"};
   // vector<TString> LRings{"R1","R2","R3","R0"};
   vector<TString> LRings{"R1"};
-  vector<TString> Eff_T{"CSCReco","CSCMatch","GEMReco","GEMMatch","ClusterReco","ClusterMatch"};
+  vector<TString> Eff_T{"CSCReco","CSCMatch","GEMReco","GEMMatch","ClusterReco","ClusterMatch","PadReco","PadMatch"};
   vector<TString> Eff_V{"Eta","Phi","R","z"};
   for (unsigned iET = 0; iET < Eff_T.size(); ++iET) {
     for (unsigned iES = 0; iES < LDisks.size(); ++iES) {
@@ -23,12 +23,11 @@
         c3->cd(iEV+1);
         eff->Draw();
       }
-      c3->SaveAs(savepath + Eff_T[iET] + "Eff_" + LDisks[iES] + ".pdf");
+      c3->SaveAs(savepath + Eff_T[iET] + "Eff_" + LDisks[iES] + ".png");
     }
   }
-  cout <<"2" <<endl;
 
-  vector<TString> Close_T{"CSC","GEM","Cluster"};
+  vector<TString> Close_T{"CSC","GEM","Cluster","Pad"};
   for (unsigned iCT = 0; iCT < Close_T.size(); ++iCT) {
     for (unsigned iCD = 0; iCD < LDisks.size(); ++iCD) {
       for(unsigned iCR = 0; iCR < LRings.size(); ++iCR) {
@@ -43,57 +42,41 @@
           cout << "    eta: " << close->GetMean(1) << " +- " << close->GetRMS(1) << " ; mu + 2 stddev = " << close->GetMean(1) + 2 * close->GetRMS(1) <<endl;
           cout << "    phi: " << close->GetMean(2) << " +- " << close->GetRMS(2) << " ; mu + 2 stddev = " << close->GetMean(2) + 2 * close->GetRMS(2) <<endl;
         }
-        c1->SaveAs(savepath + Close_T[iCT] + "ClosestDigi_" + LDisks[iCD] + LRings[iCR] + ".pdf");
+        c1->SaveAs(savepath + Close_T[iCT] + "ClosestDigi_" + LDisks[iCD] + LRings[iCR] + ".png");
       }
     }
   }
-  cout <<"3" <<endl;
-  vector<TString> CSCGEMEff_N{"MatchedSH","AllLCT","MatchedLCT"};
-  vector<TString> CSCGEMEff_V{"Eta","Phi","R","z","Slope"};
+  vector<TString> CSCGEMEff_N{"Matched","All"};
+  vector<TString> CSCGEMEff_V{"Eta","Phi","R","z","Slope","Chamber"};
   for (unsigned iED = 0; iED < LDisks.size(); ++iED) {
     for (unsigned iER = 0; iER < LRings.size(); ++iER) {
       for (unsigned iEV = 0; iEV < CSCGEMEff_V.size(); ++iEV) {
         for (unsigned iEN = 0; iEN < CSCGEMEff_N.size(); ++iEN) {
-          TEfficiency *eff0 = (TEfficiency*) f->Get("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "GP_Either_" + LDisks[iED] + LRings[iER]);
-          TEfficiency *eff1 = (TEfficiency*) f->Get("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "GP_1_" + LDisks[iED] + LRings[iER]);
-          TEfficiency *eff2 = (TEfficiency*) f->Get("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "GP_2_" + LDisks[iED] + LRings[iER]);
-          TEfficiency *eff3 = (TEfficiency*) f->Get("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "GP_Both_" + LDisks[iED] + LRings[iER]);
+          TEfficiency *eff0 = (TEfficiency*) f->Get("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_Either_" + LDisks[iED] + LRings[iER]);
+          TEfficiency *eff1 = (TEfficiency*) f->Get("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_1_" + LDisks[iED] + LRings[iER]);
+          TEfficiency *eff2 = (TEfficiency*) f->Get("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_2_" + LDisks[iED] + LRings[iER]);
+          TEfficiency *eff3 = (TEfficiency*) f->Get("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_Both_" + LDisks[iED] + LRings[iER]);
           vector<TEfficiency*> effs{eff0, eff1, eff2, eff3};
           for (unsigned i = 0; i < effs.size(); ++i) {
             c4->cd(i+1);
             effs[i]->Draw();
           }
-          c4->SaveAs(savepath + "CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "GP_" + LDisks[iED] + LRings[iER]+".pdf");
+          c4->SaveAs(savepath + "CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_" + LDisks[iED] + LRings[iER]+".png");
         }
       }
     }
   }
-  cout << "4" <<endl;
   for (unsigned iED = 0; iED < LDisks.size(); ++iED) {
     for (unsigned iER = 0; iER < LRings.size(); ++iER) {
       TH2F *h2 = (TH2F*) f->Get("dPhiVsSlope_" + LDisks[iED] + LRings[iER]);
       c1->cd();
       h2->Draw("colz");
-      c1->SaveAs(savepath + "dPhiVsSlope" + LDisks[iED] + LRings[iER] + ".pdf");
+      c1->SaveAs(savepath + "dPhiVsSlope" + LDisks[iED] + LRings[iER] + ".png");
     }
   }
 
-  // for (unsigned iCT = 0; iCT < Close_T.size(); ++iCT) {
-  //   for (unsigned iCD = 0; iCD < LDisks.size(); ++iCD) {
-  //     for(unsigned iCR = 0; iCR < LRings.size(); ++iCR) {
-  //       vector<TH2F*> h;
-  //       h.push_back((TH2F*) f->Get(Close_T[iCT] + "SimHitRVZ_" + LDisks[iCD] + LRings[iCR]));
-  //       h.push_back((TH2F*) f->Get(Close_T[iCT] + "DigiRVZ_" + LDisks[iCD] + LRings[iCR]));
-  //       h.push_back((TH2F*) f->Get(Close_T[iCT] + "SimHitRVPhi_" + LDisks[iCD] + LRings[iCR]));
-  //       h.push_back((TH2F*) f->Get(Close_T[iCT] + "DigiRVPhi_" + LDisks[iCD] + LRings[iCR]));
-  //
-  //       for (unsigned ic = 0; ic < 4; ++ic) {
-  //         c4->cd(ic+1);
-  //         h[ic]->Draw("colz");
-  //       }
-  //       c4->SaveAs(savepath + Close_T[iCT] + "RZPhi_" + LDisks[iCD] + LRings[iCR] + ".pdf");
-  //     }
-  //   }
-  // }
+
+
+
   gApplication->Terminate();
 }

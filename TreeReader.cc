@@ -64,7 +64,8 @@ public:
     return tmp;
   }
 
-  void ReadTree() {
+  void ReadTree(Long64_t jentry) {
+    eventTree->GetEntry(jentry);
     Evt.Init(); // Reset
 
     //TP
@@ -139,7 +140,7 @@ public:
       tmp.slope   = br_allCscStubsLCT.slope->at(i);
       tmp.quality = br_allCscStubsLCT.quality->at(i);
       tmp.keywire = br_allCscStubsLCT.keywire->at(i);
-      tmp.strip   = br_allCscStubsLCT.keywire->at(i);
+      tmp.strip   = br_allCscStubsLCT.strip->at(i);
       tmp.strip8  = br_allCscStubsLCT.strip8->at(i);
       tmp.valid   = br_allCscStubsLCT.valid->at(i);
       tmp.type    = br_allCscStubsLCT.type->at(i);
@@ -234,14 +235,28 @@ public:
       tmp.slope   = br_matchCscStubsLCT.slope->at(i);
       tmp.quality = br_matchCscStubsLCT.quality->at(i);
       tmp.keywire = br_matchCscStubsLCT.keywire->at(i);
-      tmp.strip   = br_matchCscStubsLCT.keywire->at(i);
+      tmp.strip   = br_matchCscStubsLCT.strip->at(i);
       tmp.strip8  = br_matchCscStubsLCT.strip8->at(i);
       tmp.valid   = br_matchCscStubsLCT.valid->at(i);
       tmp.type    = br_matchCscStubsLCT.type->at(i);
-      tmp.GEM1pad = br_matchCscStubsLCT.GEM1pad->at(i);
-      tmp.GEM1part= br_matchCscStubsLCT.GEM1part->at(i);
-      tmp.GEM2pad = br_matchCscStubsLCT.GEM2pad->at(i);
-      tmp.GEM2part= br_matchCscStubsLCT.GEM2part->at(i);
+      tmp.GEM1pad         = br_matchCscStubsLCT.GEM1pad->at(i);
+      tmp.GEM1strip       = br_matchCscStubsLCT.GEM1strip->at(i);
+      tmp.GEM1strip8      = br_matchCscStubsLCT.GEM1strip8->at(i);
+      tmp.GEM1strip_me1a  = br_matchCscStubsLCT.GEM1strip_me1a->at(i);
+      tmp.GEM1strip8_me1a = br_matchCscStubsLCT.GEM1strip8_me1a->at(i);
+      tmp.GEM1keywire_min = br_matchCscStubsLCT.GEM1keywire_min->at(i);
+      tmp.GEM1keywire_max = br_matchCscStubsLCT.GEM1keywire_max->at(i);
+      tmp.GEM1roll        = br_matchCscStubsLCT.GEM1roll->at(i);
+      tmp.GEM1part        = br_matchCscStubsLCT.GEM1part->at(i);
+      tmp.GEM2pad         = br_matchCscStubsLCT.GEM2pad->at(i);
+      tmp.GEM2strip       = br_matchCscStubsLCT.GEM2strip->at(i);
+      tmp.GEM2strip8      = br_matchCscStubsLCT.GEM2strip8->at(i);
+      tmp.GEM2strip_me1a  = br_matchCscStubsLCT.GEM2strip_me1a->at(i);
+      tmp.GEM2strip8_me1a = br_matchCscStubsLCT.GEM2strip8_me1a->at(i);
+      tmp.GEM2keywire_min = br_matchCscStubsLCT.GEM2keywire_min->at(i);
+      tmp.GEM2keywire_max = br_matchCscStubsLCT.GEM2keywire_max->at(i);
+      tmp.GEM2roll        = br_matchCscStubsLCT.GEM2roll->at(i);
+      tmp.GEM2part        = br_matchCscStubsLCT.GEM2part->at(i);
       tmp.MatchIndex = br_matchCscStubsLCT.matchIndex->at(i);
       tmp.CLCT_hits.clear();
       tmp.CLCT_positions.clear();
@@ -435,16 +450,6 @@ public:
 private:
   TChain *eventTree;
 };
-
-bool DaRValidate(double r, double z, DetId det, TString info = "") {
-  auto DaR = DiskAndRing(r,z);
-  if (DaR.first == (det.station - 1 ) && DaR.second == (det.ring - 1)) return true;
-  else {
-    cout << info << " ";
-    cout << Form("For r = %f, z = %f, DaR gives (%i, %i), while det gives (%i, %i)", r, z, DaR.first, DaR.second, det.station, det.ring)<<endl;
-    return false;
-  }
-}
 
 int MuonTPindex(unsigned Original_, vector<tp> MuonTPs_){
   const unsigned TPsize=MuonTPs_.size();
