@@ -1,6 +1,8 @@
 {
   TString savepath = "../../Report/plots/";
-  TFile *f = new TFile("plots.root");
+  TString FileName = "SMNoPU0Total.root"
+  TFile *f = new TFile(FileName);
+  cout << "Processing " << FileName <<endl;
   TCanvas *c6 = new TCanvas("c6","c6",1700,1100);
   c6->Divide(3,2);
   TCanvas *c4 = new TCanvas("c4","c4",1700,1000);
