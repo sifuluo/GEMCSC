@@ -57,6 +57,18 @@ struct tp{
   int      charge;
   int      Index; //contains the oriignal unculled tp collection index to facilitate linking
   vector<TString> DetHit;
+  vector<bool> reco;
+  vector<bool> cross;
+  void Calc() {
+    reco.resize(5,false);
+    cross.resize(5,false);
+    bool xME11 = (fabs(eta) > 1.6 && fabs(eta) < 2.4);
+    bool xME21 = (fabs(eta) > 1.6 && fabs(eta) < 2.4);
+    bool xGE0  = (fabs(eta) > 2.0 && fabs(eta) < 2.8);
+    bool xGE11 = (fabs(eta) > 1.6 && fabs(eta) < 2.15);
+    bool xGE21 = (fabs(eta) > 1.6 && fabs(eta) < 2.4);
+    cross = vector<bool>{xME11,xME21,xGE0,xGE11,xGE21};
+  }
 };
 
 struct SimHit{

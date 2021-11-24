@@ -87,6 +87,7 @@ public:
       tmp.eventid = br_tp.eventid->at(i);
       tmp.charge  = br_tp.charge->at(i);
       tmp.Index   = i;
+      tmp.Calc();
       Evt.I_MuonTPs.push_back(tmp);
     };
     if (DebugMode) {

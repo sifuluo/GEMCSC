@@ -24,7 +24,7 @@ void GEMEff() {
   // tree->Add("pu.root");
   TString EOSPath = "/eos/user/s/siluo/";
   TString NtuplePath = "MuGun/Ntuple/";
-  TString DataSet = "SMNoPU0a";
+  TString DataSet = "SMNoPU0";
   for (unsigned i = 0; i < 50; ++i) {
     TString DataFile = Form(EOSPath+NtuplePath+DataSet+"/out_%i.root",i);
     tree->Add(DataFile);
@@ -132,9 +132,9 @@ void GEMEff() {
 
   int cancscpos(0),cancscneg(0),cangempos(0),cangemneg(0),canbothpos(0),canbothneg(0);
   int tppos(0),tpneg(0),evttppos(0),evttpneg(0);
-
-
-
+  vector<int> tpexp, tpreco;
+  tpexp.resize(5,0);
+  tpreco.resize(5,0);
   // TP reconstruction plots
   //how often is a sim muon matched to ALCT, CLCT, 1GEM cluster, 2GEM clusters? How often do you get any combination? How often do you get an LCT?
   //What is the type of LCT matched to the muon? etc. questions like this need to be answered in order to understand any inefficiencies
@@ -186,6 +186,8 @@ void GEMEff() {
               DetEff[0][iEV][disk]->Fill(1,CSCSimHitAve_V[iEV]); // CSCReco
               DetEff[1][iEV][disk]->Fill(1,CSCSimHitAve_V[iEV]); // CSCMatch
             }
+            if (disk == 1 && ThisTP.TP->cross[0]) ThisTP.TP->reco[0] = true;
+            if (disk == 2 && ThisTP.TP->cross[1]) ThisTP.TP->reco[1] = true;
           }
           else {
             bool DigiInGeneric = false;
@@ -200,6 +202,8 @@ void GEMEff() {
                 DetEff[0][iEV][disk]->Fill(1,CSCSimHitAve_V[iEV]); // CSCReco
                 DetEff[1][iEV][disk]->Fill(0,CSCSimHitAve_V[iEV]); // CSCMatch
               }
+              if (disk == 1 && ThisTP.TP->cross[0]) ThisTP.TP->reco[0] = true;
+              if (disk == 2 && ThisTP.TP->cross[1]) ThisTP.TP->reco[1] = true;
             }
             else {
               for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
@@ -224,11 +228,6 @@ void GEMEff() {
           }
           if (ClosedR < 999) TH2Plots[0][0][disk][ring]->Fill(ClosedEta,ClosedPhi);
         }
-        else {
-          for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
-            DetEff[0][iEV][disk]->Fill(0,CSCSimHitAve_V[iEV]); // CSCReco
-          }
-        }
 
         if (CanRecoGEM) { //GEMDigi
           if (ThisTP.CSCSimHitAve.eta > 0) cangempos++;
@@ -239,6 +238,9 @@ void GEMEff() {
               DetEff[2][iEV][disk]->Fill(1,GEMSimHitAve_V[iEV]); // GEMReco
               DetEff[3][iEV][disk]->Fill(1,GEMSimHitAve_V[iEV]); // GEMMatch
             }
+            if (disk == 0 && ThisTP.TP->cross[2]) ThisTP.TP->reco[2]= true;
+            if (disk == 1 && ThisTP.TP->cross[3]) ThisTP.TP->reco[3] = true;
+            if (disk == 2 && ThisTP.TP->cross[4]) ThisTP.TP->reco[4] = true;
           }
           else {
             bool DigiInGeneric = false;
@@ -253,6 +255,9 @@ void GEMEff() {
                 DetEff[2][iEV][disk]->Fill(1,GEMSimHitAve_V[iEV]); // GEMReco
                 DetEff[3][iEV][disk]->Fill(0,GEMSimHitAve_V[iEV]); // GEMMatch
               }
+              if (disk == 0 && ThisTP.TP->cross[2]) ThisTP.TP->reco[2]= true;
+              if (disk == 1 && ThisTP.TP->cross[3]) ThisTP.TP->reco[3] = true;
+              if (disk == 2 && ThisTP.TP->cross[4]) ThisTP.TP->reco[4] = true;
             }
             else {
               for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
@@ -273,11 +278,6 @@ void GEMEff() {
             }
           }
           if (ClosedR < 999) TH2Plots[0][1][disk][ring]->Fill(ClosedEta,ClosedPhi);
-        }
-        else {
-          for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
-            DetEff[2][iEV][disk]->Fill(0,GEMSimHitAve_V[iEV]); // GEMReco
-          }
         }
 
         if (CanRecoGEM) { //GEMPadClusters
@@ -324,11 +324,6 @@ void GEMEff() {
           if (ClosedR < 999) TH2Plots[0][2][disk][ring]->Fill(ClosedEta,ClosedPhi);
           // if (ClosedR < 999) cout << Form("dR = %f, dEta = %f, dPhi = %f", ClosedR, ClosedEta, ClosedPhi);
         }
-        else {
-          for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
-            DetEff[4][iEV][disk]->Fill(0,GEMSimHitAve_V[iEV]);
-          }
-        }
 
         if (CanRecoGEM) { //GEMPad
           bool PadInMatch = ThisTP.MatchGEMPadDigis.size();
@@ -373,11 +368,6 @@ void GEMEff() {
           }
           if (ClosedR < 999) TH2Plots[0][3][disk][ring]->Fill(ClosedEta,ClosedPhi);
           // if (ClosedR < 999) cout << Form("dR = %f, dEta = %f, dPhi = %f", ClosedR, ClosedEta, ClosedPhi);
-        }
-        else {
-          for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
-            DetEff[6][iEV][disk]->Fill(0,GEMSimHitAve_V[iEV]);
-          }
         }
 
         if (CanRecoCSC && CanRecoGEM) {
@@ -429,6 +419,12 @@ void GEMEff() {
         }
       }
     } // End of detector loop
+    for (tp* thistp : tps) {
+      for (unsigned itdet = 0; itdet < 5; ++itdet) {
+        if (thistp->cross[itdet]) tpexp[itdet]++;
+        if (thistp->reco[itdet]) tpreco[itdet]++;
+      }
+    }
     PrintProgress(jentry+1, nentries+1,PrintProgressInterval);
   } // End of event loop
 
@@ -437,6 +433,10 @@ void GEMEff() {
   cout << "Can Both Pos = " << canbothpos << ", Neg = " << canbothneg<< endl;
   cout << "TP in +eta : " << tppos << ", TP in -eta : " << tpneg << endl;
   cout << "Event TP in +eta : " << evttppos << ", TP in -eta : " << evttpneg << endl;
+  vector<string> dettags{"ME11","ME21","GE0","GE11","GE21"};
+  for (unsigned i = 0; i < 5; ++i) {
+    cout << "For " << dettags[i] << " : Expected " << tpexp[i] << " , Reconstructed " << tpreco[i] << " , Efficiency: " << double(tpreco[i])/double(tpexp[i]) << endl;
+  }
   out->Write();
   out->Save();
   out->Close();
