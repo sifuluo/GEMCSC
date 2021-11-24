@@ -19,14 +19,24 @@ using namespace std;
 void GEMEff() {
   TChain *tree = new TChain("NtupleMaker/eventTree");
   // tree->Add("out_Run4.root");
-  tree->Add("Privatea_Run4_0.root");
+  // tree->Add("Privatea_Run4_0.root");
   // tree->Add("ntuple/Privatec_Run4.root");
   // tree->Add("pu.root");
+  TString EOSPath = "/eos/user/s/siluo/";
+  TString NtuplePath = "MuGun/Ntuple/";
+  TString DataSet = "SMNoPU0a";
+  for (unsigned i = 0; i < 50; ++i) {
+    TString DataFile = Form(EOSPath+NtuplePath+DataSet+"/out_%i.root",i);
+    tree->Add(DataFile);
+    cout << "Reading Data File " << DataFile<<endl;
+  }
 
   TreeReader *tr = new TreeReader(tree);
-  TFile *out = new TFile("plots.root","RECREATE");
+  // TFile *out = new TFile("plots.root","RECREATE");
+  TFile *out = new TFile(DataSet+".root","RECREATE");
   out->cd();
 
+  cout << "Saving into " << DataSet+".root"<<endl;
   // Lists of Disks and Rings
   vector<TString> LDisks{"D0","D1","D2"};
   vector<TString> LRings{"R1"};
@@ -131,8 +141,9 @@ void GEMEff() {
   //because there are 5 types of LCTs we can make in ME1/1: ALCT-CLCT, ALCT-CLCT-1GEM, ALCT-CLCT-2GEM, ALCT-2GEM and CLCT-2GEM, we need to know exactly which type was expected to show up in a chamber based on the presence of ALCT/CLCT/GEM, but somehow did not.
 
   Long64_t nentries = tree->GetEntries();
+  int PrintProgressInterval = 1;
+  PrintProgress(0, nentries + 1, PrintProgressInterval);
   for (Long64_t jentry = 0; jentry < nentries; ++jentry) {
-    PrintProgress(jentry, nentries,1);
     // cout << "Finished event init " << jentry <<endl;
     Long64_t ientry = tree->LoadTree(jentry);
     // tree->GetEntry(jentry);
@@ -213,6 +224,11 @@ void GEMEff() {
           }
           if (ClosedR < 999) TH2Plots[0][0][disk][ring]->Fill(ClosedEta,ClosedPhi);
         }
+        else {
+          for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
+            DetEff[0][iEV][disk]->Fill(0,CSCSimHitAve_V[iEV]); // CSCReco
+          }
+        }
 
         if (CanRecoGEM) { //GEMDigi
           if (ThisTP.CSCSimHitAve.eta > 0) cangempos++;
@@ -257,6 +273,11 @@ void GEMEff() {
             }
           }
           if (ClosedR < 999) TH2Plots[0][1][disk][ring]->Fill(ClosedEta,ClosedPhi);
+        }
+        else {
+          for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
+            DetEff[2][iEV][disk]->Fill(0,GEMSimHitAve_V[iEV]); // GEMReco
+          }
         }
 
         if (CanRecoGEM) { //GEMPadClusters
@@ -303,6 +324,11 @@ void GEMEff() {
           if (ClosedR < 999) TH2Plots[0][2][disk][ring]->Fill(ClosedEta,ClosedPhi);
           // if (ClosedR < 999) cout << Form("dR = %f, dEta = %f, dPhi = %f", ClosedR, ClosedEta, ClosedPhi);
         }
+        else {
+          for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
+            DetEff[4][iEV][disk]->Fill(0,GEMSimHitAve_V[iEV]);
+          }
+        }
 
         if (CanRecoGEM) { //GEMPad
           bool PadInMatch = ThisTP.MatchGEMPadDigis.size();
@@ -347,6 +373,11 @@ void GEMEff() {
           }
           if (ClosedR < 999) TH2Plots[0][3][disk][ring]->Fill(ClosedEta,ClosedPhi);
           // if (ClosedR < 999) cout << Form("dR = %f, dEta = %f, dPhi = %f", ClosedR, ClosedEta, ClosedPhi);
+        }
+        else {
+          for (unsigned iEV = 0; iEV < Eff_V.size(); ++iEV) {
+            DetEff[6][iEV][disk]->Fill(0,GEMSimHitAve_V[iEV]);
+          }
         }
 
         if (CanRecoCSC && CanRecoGEM) {
@@ -398,6 +429,7 @@ void GEMEff() {
         }
       }
     } // End of detector loop
+    PrintProgress(jentry+1, nentries+1,PrintProgressInterval);
   } // End of event loop
 
   cout << "Can CSC Pos = " << cancscpos << ", Neg = " << cancscneg<< endl;
