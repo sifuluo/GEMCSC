@@ -18,25 +18,35 @@ using namespace std;
 
 void GEMEff() {
   TChain *tree = new TChain("NtupleMaker/eventTree");
-  // tree->Add("out_Run4.root");
-  // tree->Add("Privatea_Run4_0.root");
-  // tree->Add("ntuple/Privatec_Run4.root");
-  // tree->Add("pu.root");
-  TString EOSPath = "/eos/user/s/siluo/";
-  TString NtuplePath = "MuGun/Ntuple/";
-  TString DataSet = "SMNoPU0";
-  for (unsigned i = 0; i < 50; ++i) {
-    TString DataFile = Form(EOSPath+NtuplePath+DataSet+"/out_%i.root",i);
-    tree->Add(DataFile);
-    cout << "Reading Data File " << DataFile<<endl;
-  }
+  bool BatchRun = true;
+  TString outputname;
 
+  if (BatchRun) {
+    TString EOSPath = "/eos/user/s/siluo/";
+    TString NtuplePath = "MuGun/Ntuple/";
+    vector<TString> DataSets{"SMNoPU0"};
+    // vector<TString> DataSets{"DMNoPU0"};
+    if (DataSets.size() == 1) outputname = DataSets[0];
+    else outputname = DataSets[0] + "With" + to_string(DataSets.size());
+    for (auto DataSet : DataSets) {
+      for (unsigned i = 0; i < 100; ++i) {
+        TString DataFile = Form(EOSPath+NtuplePath+DataSet+"/out_%i.root",int(i));
+        tree->Add(DataFile);
+        cout << "Reading Data File " << DataFile<< endl;
+      }
+    }
+  }
+  else {
+    TString LocalFile = "../Nov30/out/out.root";
+    tree->Add(LocalFile);
+    outputname = "plots";
+    cout << "Reading Data File " << LocalFile << endl;
+  }
   TreeReader *tr = new TreeReader(tree);
-  // TFile *out = new TFile("plots.root","RECREATE");
-  TFile *out = new TFile(DataSet+".root","RECREATE");
+  TFile *out = new TFile(outputname + ".root","RECREATE");
+  cout << "Saving into " << outputname + ".root"<<endl;
   out->cd();
 
-  cout << "Saving into " << DataSet+".root"<<endl;
   // Lists of Disks and Rings
   vector<TString> LDisks{"D0","D1","D2"};
   vector<TString> LRings{"R1"};
@@ -97,18 +107,23 @@ void GEMEff() {
   vector<TString> CSCGEMEff_N{"Matched","All"};
   vector<TString> CSCGEMEff_V{"Eta","Phi","R","z","Slope","Chamber"};
   vector<TString> CSCGEMEff_V2{"#eta","#phi","R","z","Slope","Chamber"};
-  vector<int> CSCGEMEff_V_div{60,70,80,220,20,2};
+  vector<int> CSCGEMEff_V_div{60,70,400,220,20,2};
   vector<float> CSCGEMEff_V_low{-3.0,-3.5,0,-1100,-10,0};
-  vector<float> CSCGEMEff_V_up{3.0,3.5,800,1100,10,2};
+  vector<float> CSCGEMEff_V_up{3.0,3.5,400,1100,10,2};
   vector<vector<vector<vector<vector<TEfficiency*> > > > >CSCGEMEff;
+  vector<vector<vector<vector<vector<TH1F*> > > > >CSCGEMEffH;
 
   CSCGEMEff.resize(LDisks.size());
+  CSCGEMEffH.resize(LDisks.size());
   for (unsigned iED = 0; iED < LDisks.size(); ++iED) {
     CSCGEMEff[iED].resize(LRings.size());
+    CSCGEMEffH[iED].resize(LRings.size());
     for (unsigned iER = 0; iER < LRings.size(); ++iER) {
       CSCGEMEff[iED][iER].resize(CSCGEMEff_V.size());
+      CSCGEMEffH[iED][iER].resize(CSCGEMEff_V.size());
       for (unsigned iEV = 0; iEV < CSCGEMEff_V.size(); ++iEV) {
         CSCGEMEff[iED][iER][iEV].resize(CSCGEMEff_N.size());
+        CSCGEMEffH[iED][iER][iEV].resize(CSCGEMEff_N.size());
         for (unsigned iEN = 0; iEN < CSCGEMEff_N.size(); ++iEN) {
           CSCGEMEff[iED][iER][iEV][iEN].resize(4);
           CSCGEMEff[iED][iER][iEV][iEN][0] = new TEfficiency("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_Either_" + LDisks[iED] + LRings[iER], "CSCGEM(Either) Efficiency Vs " + CSCGEMEff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + CSCGEMEff_V2[iEV] + "; Efficiency", CSCGEMEff_V_div[iEV], CSCGEMEff_V_low[iEV], CSCGEMEff_V_up[iEV]);
@@ -116,6 +131,12 @@ void GEMEff() {
           CSCGEMEff[iED][iER][iEV][iEN][2] = new TEfficiency("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_2_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer2) Efficiency Vs " + CSCGEMEff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + CSCGEMEff_V2[iEV] + "; Efficiency", CSCGEMEff_V_div[iEV], CSCGEMEff_V_low[iEV], CSCGEMEff_V_up[iEV]);
           CSCGEMEff[iED][iER][iEV][iEN][3] = new TEfficiency("CSCGEMEffVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_Both_" + LDisks[iED] + LRings[iER], "CSCGEM(Both) Efficiency Vs " + CSCGEMEff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + CSCGEMEff_V2[iEV] + "; Efficiency", CSCGEMEff_V_div[iEV], CSCGEMEff_V_low[iEV], CSCGEMEff_V_up[iEV]);
           for (auto eff_ : CSCGEMEff[iED][iER][iEV][iEN]) eff_->SetDirectory(out);
+          CSCGEMEffH[iED][iER][iEV][iEN].resize(4);
+          CSCGEMEffH[iED][iER][iEV][iEN][0] = new TH1F("CSCGEMVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_Either_" + LDisks[iED] + LRings[iER], "CSCGEM(Either) Efficiency Vs " + CSCGEMEff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + CSCGEMEff_V2[iEV] + "; Efficiency", CSCGEMEff_V_div[iEV], CSCGEMEff_V_low[iEV], CSCGEMEff_V_up[iEV]);
+          CSCGEMEffH[iED][iER][iEV][iEN][1] = new TH1F("CSCGEMVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_1_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer1) Efficiency Vs " + CSCGEMEff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + CSCGEMEff_V2[iEV] + "; Efficiency", CSCGEMEff_V_div[iEV], CSCGEMEff_V_low[iEV], CSCGEMEff_V_up[iEV]);
+          CSCGEMEffH[iED][iER][iEV][iEN][2] = new TH1F("CSCGEMVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_2_" + LDisks[iED] + LRings[iER], "CSCGEM(Layer2) Efficiency Vs " + CSCGEMEff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + CSCGEMEff_V2[iEV] + "; Efficiency", CSCGEMEff_V_div[iEV], CSCGEMEff_V_low[iEV], CSCGEMEff_V_up[iEV]);
+          CSCGEMEffH[iED][iER][iEV][iEN][3] = new TH1F("CSCGEMVs" + CSCGEMEff_V[iEV] + CSCGEMEff_N[iEN] + "_Both_" + LDisks[iED] + LRings[iER], "CSCGEM(Both) Efficiency Vs " + CSCGEMEff_V2[iEV] + " for " + CSCGEMEff_N[iEN] + "LCTs at" + LDisks[iED] + " " + LRings[iER] + "; TP SimHit " + CSCGEMEff_V2[iEV] + "; Efficiency", CSCGEMEff_V_div[iEV], CSCGEMEff_V_low[iEV], CSCGEMEff_V_up[iEV]);
+          for (auto eff_ : CSCGEMEffH[iED][iER][iEV][iEN]) eff_->SetDirectory(out);
         }
       }
     }
@@ -132,6 +153,7 @@ void GEMEff() {
 
   int cancscpos(0),cancscneg(0),cangempos(0),cangemneg(0),canbothpos(0),canbothneg(0);
   int tppos(0),tpneg(0),evttppos(0),evttpneg(0);
+  int GhostMatchGEM1(0), GhostMatchGEM2;
   vector<int> tpexp, tpreco;
   tpexp.resize(5,0);
   tpreco.resize(5,0);
@@ -376,17 +398,63 @@ void GEMEff() {
           vector<float> CSCSimHitAve_VExt = CSCSimHitAve_V;
           CSCSimHitAve_VExt.push_back(0);
           CSCSimHitAve_VExt.push_back(0);
+          vector<vector<float> > GEMSimHitV{{},{}};
+          bool hasGEMSH1(false), hasGEMSH2(false), overwrittensh(false);
+          if (disk > 0) {
+            for (auto sh : ThisTP.GEMSimHits) {
+              vector<float> GEMSimHitV_{sh->eta, sh->phi, sh->r, sh->z, 0, (float)sh->det.chamber};
+              if (sh->det.layer == 1) {
+                // if (hasGEMSH1) {
+                //   cout << "Overwriting layer1?" <<endl;
+                //   overwrittensh = true;
+                // }
+                GEMSimHitV[0] = GEMSimHitV_;
+                hasGEMSH1 = true;
+              }
+              else if (sh->det.layer == 2) {
+                // if (hasGEMSH2) {
+                //   cout << "Overwriting layer2?" <<endl;
+                //   overwrittensh = true;
+                // }
+                GEMSimHitV[1] = GEMSimHitV_;
+                hasGEMSH2 = true;
+              }
+            }
+          }
+          // if (overwrittensh) {
+          //   cout << "GEMSimHit Overwritten, GEMSimHits are:" <<endl;
+          //   for (auto sh : ThisTP.GEMSimHits) {
+          //     cout << *sh <<endl;
+          //   }
+          // }
+
           for (unsigned icsc = 0; icsc < ThisTP.MatchCSCStubs.size(); ++icsc) {
             CSCStub* lct = ThisTP.MatchCSCStubs[icsc];
             bool hasGEM1 = (lct->GEM1pad != 255);
             bool hasGEM2 = (lct->GEM2pad != 255);
+            // Are the GEM1/GEM2 the same as the GEMPadCluster collection?
             CSCSimHitAve_VExt[4] = lct->slope;
-            CSCSimHitAve_VExt[4] = lct->det.chamber % 2;
+            CSCSimHitAve_VExt[5] = lct->det.chamber;
             for (unsigned iEV = 0; iEV < CSCGEMEff_V.size(); ++iEV) {
               CSCGEMEff[disk][ring][iEV][0][0]->Fill((hasGEM1 || hasGEM2), CSCSimHitAve_VExt[iEV]);
               CSCGEMEff[disk][ring][iEV][0][1]->Fill((hasGEM1), CSCSimHitAve_VExt[iEV]);
               CSCGEMEff[disk][ring][iEV][0][2]->Fill((hasGEM2), CSCSimHitAve_VExt[iEV]);
               CSCGEMEff[disk][ring][iEV][0][3]->Fill((hasGEM1 && hasGEM2), CSCSimHitAve_VExt[iEV]);
+              if (disk == 0) continue;
+              bool True1 = hasGEMSH1 && hasGEM1;
+              bool True2 = hasGEMSH2 && hasGEM2;
+              if (hasGEM1 && !hasGEMSH1) {
+                cout << "Ghost GEM1 in MatchCSC" << endl;
+                GhostMatchGEM1++;
+              }
+              if (hasGEM2 && !hasGEMSH2) {
+                cout << "Ghost GEM2 in MatchCSC" << endl;
+                GhostMatchGEM2++;
+              }
+              if (True1 || True2) CSCGEMEffH[disk][ring][iEV][0][0]->Fill(GEMSimHitV[(True1 ? 0 : 1)][iEV]);
+              if (True1) CSCGEMEffH[disk][ring][iEV][0][1]->Fill(GEMSimHitV[0][iEV]);
+              if (True2) CSCGEMEffH[disk][ring][iEV][0][2]->Fill(GEMSimHitV[1][iEV]);
+              if (True1 && True2) CSCGEMEffH[disk][ring][iEV][0][3]->Fill(GEMSimHitV[0][iEV]);
             }
           }
         }
@@ -404,20 +472,23 @@ void GEMEff() {
         }
       } // End of tp loop
 
-
-      for (unsigned icsc = 0; icsc < ThisStation.AllCSCStubs.size(); ++icsc) {
-        CSCStub* lct = ThisStation.AllCSCStubs[icsc];
-        // if (lct->det.chamber%2 != 0) continue;
-        bool hasGEM1 = (lct->GEM1pad != 255);
-        bool hasGEM2 = (lct->GEM2pad != 255);
-        vector<float> CSCStub_V{lct->eta, lct->phi, lct->r, lct->z, (float)lct->slope, (float)(lct->det.chamber % 2)};
-        for (unsigned iEV = 0; iEV < CSCGEMEff_V.size(); ++iEV) {
-          CSCGEMEff[disk][ring][iEV][1][0]->Fill((hasGEM1 || hasGEM2), CSCStub_V[iEV]);
-          CSCGEMEff[disk][ring][iEV][1][1]->Fill((hasGEM1), CSCStub_V[iEV]);
-          CSCGEMEff[disk][ring][iEV][1][2]->Fill((hasGEM2), CSCStub_V[iEV]);
-          CSCGEMEff[disk][ring][iEV][1][3]->Fill((hasGEM1 && hasGEM2), CSCStub_V[iEV]);
+      if (true) { // Enclose allCSC scope
+        for (unsigned icsc = 0; icsc < ThisStation.AllCSCStubs.size(); ++icsc) {
+          CSCStub* lct = ThisStation.AllCSCStubs[icsc];
+          // if (lct->det.chamber%2 != 0) continue;
+          bool hasGEM1 = (lct->GEM1pad != 255);
+          bool hasGEM2 = (lct->GEM2pad != 255);
+          vector<float> CSCStub_V{lct->eta, lct->phi, lct->r, lct->z, (float)lct->slope, (float)(lct->det.chamber % 2)};
+          for (unsigned iEV = 0; iEV < CSCGEMEff_V.size(); ++iEV) {
+            CSCGEMEff[disk][ring][iEV][1][0]->Fill((hasGEM1 || hasGEM2), CSCStub_V[iEV]);
+            CSCGEMEff[disk][ring][iEV][1][1]->Fill((hasGEM1), CSCStub_V[iEV]);
+            CSCGEMEff[disk][ring][iEV][1][2]->Fill((hasGEM2), CSCStub_V[iEV]);
+            CSCGEMEff[disk][ring][iEV][1][3]->Fill((hasGEM1 && hasGEM2), CSCStub_V[iEV]);
+          }
         }
       }
+
+
     } // End of detector loop
     for (tp* thistp : tps) {
       for (unsigned itdet = 0; itdet < 5; ++itdet) {
@@ -433,6 +504,8 @@ void GEMEff() {
   cout << "Can Both Pos = " << canbothpos << ", Neg = " << canbothneg<< endl;
   cout << "TP in +eta : " << tppos << ", TP in -eta : " << tpneg << endl;
   cout << "Event TP in +eta : " << evttppos << ", TP in -eta : " << evttpneg << endl;
+  cout << "Ghost GEM1 in MatchCSC: " << GhostMatchGEM1 <<endl;
+  cout << "Ghost GEM2 in MatchCSC: " << GhostMatchGEM2 <<endl;
   vector<string> dettags{"ME11","ME21","GE0","GE11","GE21"};
   for (unsigned i = 0; i < 5; ++i) {
     cout << "For " << dettags[i] << " : Expected " << tpexp[i] << " , Reconstructed " << tpreco[i] << " , Efficiency: " << double(tpreco[i])/double(tpexp[i]) << endl;

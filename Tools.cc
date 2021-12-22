@@ -41,7 +41,7 @@ pair<int,int> DiskAndRing(float r_, float z_){
   }
   if(DiskRingPair.first==999 || DiskRingPair.second==999) {
     cout << "r = " << r << ", z = " << z << endl;
-    throw runtime_error("DiskAndRing invalid r-z coordinate");
+    // throw runtime_error("DiskAndRing invalid r-z coordinate");
   }
   return DiskRingPair;
 }

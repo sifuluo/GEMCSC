@@ -10,6 +10,7 @@
 #include <vector>
 #include <utility>
 #include <cmath>
+#include <iomanip>
 
 #include "Tools.cc"
 
@@ -30,6 +31,10 @@ struct DetId {
     return (detId == id.detId && zendcap == id.zendcap && ring == id.ring && station == id.station && layer == id.layer && chamber == id.chamber && roll == id.roll);
   }
 };
+ostream& operator<<(ostream& os, const DetId& id) {
+  os << " Re " << id.zendcap << " St " << id.station << " Ri " << id.ring << " La " << id.layer << " Ch " << id.chamber << " Et " << id.roll << " ";
+  return os;
+}
 
 pair<int, int> DiskAndRing(double r, double z, DetId det, TString info = "") {
   pair<int, int> DaR = DiskAndRing(r,z);
@@ -79,6 +84,13 @@ struct SimHit{
   float    z;
   int MatchIndex;
 };
+ostream& operator<<(ostream& os, const SimHit& sh) {
+  os << showpoint;
+  os << " Eta " << sh.eta << " Phi " << sh.phi << " R " << sh.r << " z " << sh.z;
+  os << noshowpoint;
+  os << sh.det;
+  return os;
+}
 
 struct GEMPadDigi{
   DetId det;
